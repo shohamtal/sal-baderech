@@ -96,35 +96,56 @@ docker exec -i supabase_db_sal-baderech psql -U postgres -d postgres -tA -q < su
 
 ### 1. Supabase project
 
-1. Create a project at supabase.com.
-2. **Authentication → Providers → Anonymous sign-ins: enable.** (Volunteer registration relies on it.)
-   Keep **Email** enabled with **Confirm email** on (this is what makes invite-by-email safe).
-3. **Authentication → URL configuration:** set *Site URL* to your Pages URL
-   (`https://<owner>.github.io/<repo>/`) and add it to *Redirect URLs*.
-4. Apply the migrations:
+1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard) (free tier is enough).
+   Pick a region near your users and save the database password somewhere safe.
+
+2. **Create the schema.** Copy all three migrations to your clipboard:
    ```bash
-   npx supabase login
-   npx supabase link --project-ref <project-ref>
-   npx supabase db push
+   npm run db:sql        # = cat supabase/migrations/*.sql | pbcopy
    ```
-5. Bootstrap the first platform admin (SQL editor). Use the email you will sign up with:
+   Open **SQL Editor → New query**, paste, **Run**. It applies as a single transaction and
+   creates 9 tables, 24 RLS policies and 14 functions.
+
+   *(CLI alternative, better once you have more migrations: `npx supabase login`,
+   `npx supabase link --project-ref <ref>`, `npx supabase db push`.)*
+
+3. **Enable anonymous sign-ins** — volunteer registration depends on it.
+   **Authentication → Sign In / Providers → Anonymous sign-ins → enable.**
+   Leave **Email** enabled with **Confirm email ON**; that confirmation is what makes
+   invite-by-email safe for managers.
+
+4. **Set the URLs.** **Authentication → URL Configuration:**
+   * *Site URL:* `https://<owner>.github.io/<repo>/`
+   * *Redirect URLs:* add `https://<owner>.github.io/<repo>/**`
+
+5. **Bootstrap yourself as platform admin.** In the SQL Editor, with the email you will sign up with:
    ```sql
    insert into public.platform_admins (email) values ('you@example.com');
    ```
-   Then open the app → *כניסת מנהלים* → *הרשמה*, confirm the email, log in.
+   Then open the app → *כניסת מנהלים* → *הרשמה*, confirm the email, and log in.
    From `/#/admin` you create organizations and invite organization managers by email.
+
+6. **Copy the two public keys.** **Project Settings → API Keys:**
+   * `VITE_SUPABASE_URL` = Project URL (`https://<ref>.supabase.co`)
+   * `VITE_SUPABASE_ANON_KEY` = the **publishable key** (`sb_publishable_…`) *or* the
+     legacy **anon** key under *Legacy API keys*. Both are public and both work.
+
+   Never copy the **service_role** / **secret** key. It is not used anywhere in this project.
 
 ### 2. GitHub Pages
 
-1. Push the repo to GitHub; **Settings → Pages → Source: GitHub Actions.**
-2. **Settings → Secrets and variables → Actions:** add `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY` (public values, but kept out of the repo).
-3. Push to `main` → `deploy.yml` runs tests, builds with `VITE_BASE=/<repo>/`, publishes `dist/`.
-   The app uses hash routing (`/#/c/<slug>`) so deep links work on Pages; a `404.html` copy is added too.
+1. **Settings → Pages → Source: GitHub Actions.**
+2. **Settings → Secrets and variables → Actions → New repository secret**, add the two values
+   from step 6 above. Or from the CLI:
+   ```bash
+   gh secret set VITE_SUPABASE_URL      --body "https://<ref>.supabase.co"
+   gh secret set VITE_SUPABASE_ANON_KEY --body "sb_publishable_..."
+   ```
+3. Push to `main` (or re-run the workflow) → `deploy.yml` runs tests, builds with
+   `VITE_BASE=/<repo>/` and publishes `dist/`.
 
-Never add the service-role key to any secret that reaches the build.
-
----
+The app uses hash routing (`/#/c/<slug>`) so deep links survive on Pages; `404.html` is written too.
+Until the secrets exist the deployed page shows *"חסרה הגדרת Supabase"* — that is expected.
 
 ## Data import
 

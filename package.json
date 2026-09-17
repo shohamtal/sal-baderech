@@ -13,7 +13,8 @@
     "db:start": "npx supabase start",
     "db:reset": "npx supabase db reset",
     "db:test": "npx supabase test db",
-    "test:integration": "vitest run src/integration"
+    "test:integration": "vitest run src/integration",
+    "db:sql": "cat supabase/migrations/*.sql | pbcopy && echo 'All migrations copied to clipboard - paste into the Supabase SQL Editor and Run.'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
