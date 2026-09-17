@@ -1,7 +1,8 @@
 -- =============================================================================
 -- סל בדרך — Schema
 -- =============================================================================
-create extension if not exists pgcrypto;
+-- gen_random_uuid() is core Postgres 13+. We deliberately avoid depending on
+-- pgcrypto's search_path so the schema applies cleanly on any Supabase project.
 
 -- Internal helper schema. NOT exposed through PostgREST (only `public` is).
 create schema if not exists app;
@@ -76,7 +77,7 @@ create table public.campaigns (
   description text,
   city text,                        -- default city for geocoding / navigation
   status public.campaign_status not null default 'DRAFT',
-  public_slug text not null unique default encode(gen_random_bytes(6), 'hex'),
+  public_slug text not null unique default substring(replace(gen_random_uuid()::text, '-', '') from 1 for 12),
   max_baskets_per_volunteer int,    -- optional organizational limit (null = none)
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
