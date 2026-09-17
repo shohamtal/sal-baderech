@@ -1,26 +1,42 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 
-/** Read a CSV / XLSX / XLS file in the browser into header→cell records. */
-export async function readImportFile(file: File): Promise<Record<string, unknown>[]> {
+export interface ParsedWorkbook {
+  /** Sheet names, in file order. Empty for CSV. */
+  sheetNames: string[];
+  /** Header→cell records for one sheet (name ignored for CSV). */
+  rowsFor: (sheetName?: string) => Record<string, unknown>[];
+}
+
+/**
+ * Read a CSV / XLSX / XLS file once. The workbook is kept in memory so the
+ * manager can switch sheets without re-reading the file.
+ */
+export async function readImportFile(file: File): Promise<ParsedWorkbook> {
   const name = file.name.toLowerCase();
-  if (name.endsWith('.csv') || name.endsWith('.txt')) {
-    const text = await file.text();
-    const parsed = Papa.parse<Record<string, unknown>>(text.replace(/^﻿/, ''), {
+
+  if (name.endsWith('.csv') || name.endsWith('.txt') || name.endsWith('.tsv')) {
+    const text = (await file.text()).replace(/^﻿/, '');
+    const parsed = Papa.parse<Record<string, unknown>>(text, {
       header: true,
       skipEmptyLines: 'greedy',
       transformHeader: (h) => h.trim(),
     });
-    if (parsed.errors.length && !parsed.data.length) {
-      throw new Error(parsed.errors[0].message);
-    }
-    return parsed.data;
+    if (parsed.errors.length && !parsed.data.length) throw new Error(parsed.errors[0].message);
+    const rows = parsed.data;
+    return { sheetNames: [], rowsFor: () => rows };
   }
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: 'array' });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  if (!sheet) return [];
-  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '', raw: true });
+
+  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  return {
+    sheetNames: wb.SheetNames.slice(),
+    rowsFor: (sheetName?: string) => {
+      const target = sheetName && wb.Sheets[sheetName] ? sheetName : wb.SheetNames[0];
+      const sheet = target ? wb.Sheets[target] : undefined;
+      if (!sheet) return [];
+      return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '', blankrows: false });
+    },
+  };
 }
 
 export function downloadTemplateCsv(headers: string[]): void {

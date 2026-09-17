@@ -122,9 +122,20 @@ Pages are grouped by audience under `src/pages`: `public` (landing, login), `vol
 hook `useCampaign`), and `admin`.
 
 `src/lib/clustering/clustering.ts` is pure, deterministic and UI-independent, which is what makes it
-unit-testable. It uses haversine distance when both deliveries have coordinates, falls back to
-same-street house-number distance otherwise, and always returns the best available combination rather
-than nothing. Deliberately no odd/even street-side logic. Keep it decoupled from React.
+unit-testable. Distance prefers coordinates, then neighbourhood, then same-street house numbers, and it
+always returns the best available combination rather than nothing. The neighbourhood tier is not
+decoration: real recipient lists arrive with a neighbourhood column and no coordinates whatsoever, so
+without it every cluster would be guesswork. Deliberately no odd/even street-side logic. Keep it
+decoupled from React.
+
+`src/lib/import/parseImport.ts` is aligned to the columns real lists use (`Name`, `phone1`, `phone2`,
+`address`, `comments`, `neighberhood` including that spelling, `street`, `street-number`, `entrance`,
+`apartment`, `floor`, `lobby entrance code`), plus Hebrew equivalents. Three behaviours there exist
+because of real data and should not be simplified away: a combined `address` column is parsed only to
+fill fields the file did not supply; `אין קוד` and similar mean "no code" rather than being a code; and
+a single `Name` column is stored whole in `full_name` rather than split, since Hebrew lists mix name
+order. Note that JavaScript `\b` is ASCII-only and silently fails against Hebrew, which already caused
+one parsing bug.
 
 `src/lib/supabase.ts` resolves blank env values to placeholders. This matters: an unset GitHub Actions
 secret arrives as an empty string, not `undefined`, so `??` would pass `""` to `createClient()`, which

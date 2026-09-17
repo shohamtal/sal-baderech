@@ -149,14 +149,42 @@ Until the secrets exist the deployed page shows *"חסרה הגדרת Supabase"*
 
 ## Data import
 
-CSV / XLSX with headers (Hebrew or English): שם פרטי, שם משפחה, **רחוב**, **מספר בית**, דירה, קומה,
-כניסה, קוד בניין, עיר, טלפון, הערות, קו רוחב, קו אורך. Rows with errors are listed and skipped only
-after explicit confirmation. Missing coordinates can be filled later with the “השלמת מיקומים”
-button (OpenStreetMap Nominatim, 1 req/s, best-effort) or edited manually.
+Aligned to the column set real distribution lists use:
+
+```
+Name | phone1 | phone2 | address | comments | neighberhood | street |
+street-number | entrance | apartment | floor | lobby entrance code
+```
+
+Hebrew headers are equally accepted (שם, טלפון, כתובת, הערות, שכונה, רחוב, בית, כניסה, דירה, קומה,
+קוד כניסה לדלת, מספר נפשות), as is the plainer First Name / Last Name style.
+
+* **XLSX with several sheets:** the manager picks the sheet, and the preview re-runs instantly.
+* **Required:** street and house number, *or* a combined `address` column such as
+  `אודם 7 דירה 9 קומה 2`, from which street, house number, apartment, floor and entrance are parsed.
+  Explicit columns always win; parsing only fills what is missing, and the preview says how many rows
+  relied on it.
+* **`lobby entrance code`** accepts real codes (`#2580`, `*3434`) and access instructions
+  (`מנעול 1590`). Phrases meaning "no code" (`אין קוד`, `ללא קוד`, `N/A`, `-`) are stored as empty.
+* **A single `Name` column** is kept intact rather than guessed apart, because Hebrew lists mix
+  "family given" and "given family" order.
+* **Unnamed spreadsheet columns** are reported as ignored rather than silently dropped.
+* Rows with errors are listed with their row numbers and skipped only after the manager confirms.
+
+Missing coordinates can be filled later with the “השלמת מיקומים” button (OpenStreetMap Nominatim,
+1 req/s, best-effort) or edited by hand.
 
 ## Clustering
 
-`findDeliveryClusters(available, requested)` grows compact clusters from every seed using
-haversine distance when coordinates exist, otherwise same-street house-number distance, and
-scores by mean pairwise distance (+ penalties for shortfall and street count). Returns up to 3
-mostly-disjoint suggestions; never returns nothing while deliveries remain. No odd/even logic.
+`findDeliveryClusters(available, requested)` grows compact clusters from every seed and scores them by
+mean pairwise distance, with penalties for falling short of the requested size and for spanning extra
+streets or neighbourhoods. Distance uses, in order of trust:
+
+1. haversine distance, when both deliveries have coordinates;
+2. the neighbourhood, which real lists carry and which matters because they almost never carry
+   coordinates: two addresses in different neighbourhoods are never put in one cluster, while different
+   streets inside one neighbourhood stay walkable;
+3. same-street house-number distance.
+
+Returns up to 3 mostly-disjoint suggestions and never returns nothing while deliveries remain.
+No odd/even street-side logic.

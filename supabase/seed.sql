@@ -33,17 +33,17 @@ values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaa
         'חלוקת סלי מזון לחג הפסח. החלוקה מתבצעת ביום ראשון בין 9:00 ל-14:00 מנקודת האיסוף ברחוב הרצל 1.',
         'תל אביב', 'OPEN', 'demo12');
 
-insert into public.deliveries (campaign_id, first_name, last_name, street, house_number, apartment, floor, entrance, building_code, city, notes, latitude, longitude) values
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'משה', 'כהן', 'הרצל', '10', '3', '1', 'א', '1234', 'תל אביב', 'לדפוק חזק', 32.0603, 34.7710),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'שרה', 'לוי', 'הרצל', '12', '7', '2', null, null, 'תל אביב', null, 32.0606, 34.7712),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'דוד', 'מזרחי', 'הרצל', '14', '1', '0', 'ב', '5678', 'תל אביב', null, 32.0609, 34.7714),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'רחל', 'פרץ', 'הרצל', '18', '12', '4', null, null, 'תל אביב', 'אין מעלית', 32.0614, 34.7718),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'יוסף', 'ביטון', 'הרצל', '21', '2', '1', null, null, 'תל אביב', null, 32.0618, 34.7716),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'מרים', 'אזולאי', 'אלנבי', '7', '5', '2', 'א', '2222', 'תל אביב', null, 32.0640, 34.7700),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'אברהם', 'דהן', 'אלנבי', '9', '4', '2', null, null, 'תל אביב', null, 32.0643, 34.7702),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'לאה', 'חדד', 'אלנבי', '15', '8', '3', null, '9999', 'תל אביב', null, 32.0650, 34.7706),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'יעקב', 'אוחיון', 'דיזנגוף', '100', '6', '3', null, null, 'תל אביב', null, 32.0790, 34.7740),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'רבקה', 'עמר', 'דיזנגוף', '104', '2', '1', 'ג', null, 'תל אביב', null, 32.0795, 34.7742),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'שמעון', 'גבאי', 'בן יהודה', '50', '9', '4', null, null, 'תל אביב', 'להתקשר לפני', 32.0820, 34.7700),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'חנה', 'ברוך', 'רוטשילד', '30', '1', '0', null, null, 'תל אביב', null, null, null),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'אליהו', 'שלום', 'רוטשילד', '32', '3', '1', null, null, 'תל אביב', null, null, null);
+insert into public.deliveries (campaign_id, full_name, street, house_number, apartment, floor, entrance, building_code, city, neighborhood, household_size, phone, notes, latitude, longitude) values
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'משה כהן', 'הרצל', '10', '3', '1', 'א', '1234', 'תל אביב', 'מרכז', 4, '0501111111', 'לדפוק חזק', '32.0603', '34.7710'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'שרה לוי', 'הרצל', '12', '7', '2', null, null, 'תל אביב', 'מרכז', 2, null, null, '32.0606', '34.7712'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'דוד מזרחי', 'הרצל', '14', '1', '0', 'ב', '5678', 'תל אביב', 'מרכז', 5, null, null, '32.0609', '34.7714'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'רחל פרץ', 'הרצל', '18', '12', '4', null, null, 'תל אביב', 'מרכז', 1, null, 'אין מעלית', '32.0614', '34.7718'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'יוסף ביטון', 'הרצל', '21', '2', '1', null, null, 'תל אביב', 'מרכז', 3, null, null, '32.0618', '34.7716'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'מרים אזולאי', 'אלנבי', '7', '5', '2', 'א', '2222', 'תל אביב', 'מרכז', 2, null, null, '32.0640', '34.7700'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'אברהם דהן', 'אלנבי', '9', '4', '2', null, null, 'תל אביב', 'מרכז', 6, null, null, '32.0643', '34.7702'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'לאה חדד', 'אלנבי', '15', '8', '3', null, '9999', 'תל אביב', 'מרכז', 1, null, null, '32.0650', '34.7706'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'יעקב אוחיון', 'דיזנגוף', '100', '6', '3', null, null, 'תל אביב', 'צפון', 4, null, null, '32.0790', '34.7740'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'רבקה עמר', 'דיזנגוף', '104', '2', '1', 'ג', null, 'תל אביב', 'צפון', 2, null, null, '32.0795', '34.7742'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'שמעון גבאי', 'בן יהודה', '50', '9', '4', null, null, 'תל אביב', 'צפון', 3, null, 'להתקשר לפני', '32.0820', '34.7700'),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'חנה ברוך', 'רוטשילד', '30', '1', '0', null, null, 'תל אביב', 'דרום', 1, null, null, null, null),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'אליהו שלום', 'רוטשילד', '32', '3', '1', null, null, 'תל אביב', 'דרום', 5, null, null, null, null);

@@ -34,7 +34,14 @@ export default function RequestCluster() {
   const suggestions: ClusterSuggestion[] = useMemo(() => {
     if (!data) return [];
     return findDeliveryClusters(
-      data.available.map((a) => ({ id: a.id, street: a.street, houseNumber: a.house_number, latitude: a.latitude, longitude: a.longitude })),
+      data.available.map((a) => ({
+        id: a.id,
+        street: a.street,
+        houseNumber: a.house_number,
+        neighborhood: a.neighborhood,
+        latitude: a.latitude,
+        longitude: a.longitude,
+      })),
       count,
     );
   }, [data, count]);
@@ -153,6 +160,7 @@ function SuggestionCard({ s, index, selected, onSelect, byId, requested }: {
           <span className="text-sm text-slate-500">· {s.size} סלים{s.size < requested ? ` (מתוך ${requested} שביקשת)` : ''}</span>
         </div>
         <span className="text-xs text-slate-500">
+          {s.neighborhoods.length === 1 && `${s.neighborhoods[0]} · `}
           {s.sameStreet ? 'רחוב אחד' : `${s.streets.length} רחובות`}
           {s.radiusMeters != null && ` · רדיוס ~${s.radiusMeters} מ'`}
         </span>

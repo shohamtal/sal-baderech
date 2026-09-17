@@ -5,8 +5,10 @@
  * and a requested basket count, returns a few compact candidate clusters.
  *
  * Proximity signals (in order of trust):
- *   1. coordinates (haversine distance)          — when both deliveries have them
- *   2. same street + nearby house numbers          — when coordinates are missing
+ *   1. coordinates (haversine distance)   — when both deliveries have them
+ *   2. neighbourhood + street + house number — real lists rarely carry coordinates,
+ *      and a neighbourhood is then the strongest signal available: two addresses in
+ *      different neighbourhoods are never in one walkable cluster.
  *   3. otherwise "far"
  *
  * Deliberately simple: no odd/even side logic, no routing.
@@ -16,6 +18,8 @@ export interface ClusterInput {
   id: string;
   street: string;
   houseNumber: string;
+  /** Strongest proximity signal when the list has no coordinates. */
+  neighborhood?: string | null;
   latitude?: number | null;
   longitude?: number | null;
 }
@@ -26,6 +30,7 @@ export interface ClusterSuggestion {
   /** Lower is better. Roughly "average meters between baskets" plus penalties. */
   score: number;
   streets: string[];
+  neighborhoods: string[];
   /** Approximate radius in meters around the centroid (coordinates only), else null. */
   radiusMeters: number | null;
   sameStreet: boolean;
@@ -39,6 +44,10 @@ export interface ClusterOptions {
   metersPerHouseNumber?: number;
   /** Distance assumed between deliveries whose proximity is unknown. */
   unknownDistanceMeters?: number;
+  /** Assumed distance between two streets inside the same neighbourhood. */
+  sameNeighborhoodMeters?: number;
+  /** Assumed distance between two different neighbourhoods. */
+  differentNeighborhoodMeters?: number;
   /** Penalty (meters) per missing basket when the cluster is smaller than requested. */
   shortfallPenaltyMeters?: number;
   /** Cap on the number of seeds explored (performance guard). */
@@ -49,6 +58,8 @@ const DEFAULTS: Required<ClusterOptions> = {
   maxSuggestions: 3,
   metersPerHouseNumber: 12,
   unknownDistanceMeters: 2500,
+  sameNeighborhoodMeters: 350,
+  differentNeighborhoodMeters: 6000,
   shortfallPenaltyMeters: 600,
   maxSeeds: 300,
 };
@@ -85,6 +96,8 @@ export function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: 
 interface Node {
   id: string;
   street: string;
+  neighborhood: string;
+  neighborhoodLabel: string;
   /** Original street text for display. */
   streetLabel: string;
   house: number | null;
@@ -103,6 +116,8 @@ function toNode(d: ClusterInput): Node {
   return {
     id: d.id,
     street: normalizeStreet(d.street ?? ''),
+    neighborhood: normalizeStreet(d.neighborhood ?? ''),
+    neighborhoodLabel: (d.neighborhood ?? '').trim(),
     streetLabel: (d.street ?? '').trim(),
     house: parseHouseNumber(d.houseNumber),
     lat: valid ? lat : null,
@@ -114,11 +129,23 @@ function distance(a: Node, b: Node, o: Required<ClusterOptions>): number {
   if (hasCoords(a) && hasCoords(b)) {
     return haversineMeters(a.lat, a.lng, b.lat, b.lng);
   }
+
+  // Both neighbourhoods known and different: never group them, whatever the street.
+  const bothNeighborhoods = Boolean(a.neighborhood && b.neighborhood);
+  if (bothNeighborhoods && a.neighborhood !== b.neighborhood) {
+    return o.differentNeighborhoodMeters;
+  }
+
   if (a.street && a.street === b.street) {
     if (a.house != null && b.house != null) {
       return Math.abs(a.house - b.house) * o.metersPerHouseNumber;
     }
     return o.metersPerHouseNumber * 10;
+  }
+
+  // Different streets inside one neighbourhood are still walkable.
+  if (bothNeighborhoods && a.neighborhood === b.neighborhood) {
+    return o.sameNeighborhoodMeters;
   }
   return o.unknownDistanceMeters;
 }
@@ -170,8 +197,19 @@ function evaluate(
   const byKey = new Map<string, string>();
   for (const m of members) if (!byKey.has(all[m].street)) byKey.set(all[m].street, all[m].streetLabel);
   const streets = Array.from(byKey.values()).sort();
+
+  const nbKey = new Map<string, string>();
+  for (const m of members) {
+    const n = all[m];
+    if (n.neighborhood && !nbKey.has(n.neighborhood)) nbKey.set(n.neighborhood, n.neighborhoodLabel);
+  }
+  const neighborhoods = Array.from(nbKey.values()).sort();
   const shortfall = Math.max(0, requested - members.length);
-  const score = meanPairwise + shortfall * o.shortfallPenaltyMeters + (streets.length - 1) * 40;
+  const score =
+    meanPairwise +
+    shortfall * o.shortfallPenaltyMeters +
+    (streets.length - 1) * 40 +
+    Math.max(0, neighborhoods.length - 1) * 800;
 
   const withCoords = members.map((m) => all[m]).filter(hasCoords);
   // Radius is only meaningful when every member has coordinates.
@@ -187,6 +225,7 @@ function evaluate(
     size: members.length,
     score: Math.round(score * 100) / 100,
     streets,
+    neighborhoods,
     radiusMeters,
     sameStreet: streets.length === 1,
     withoutCoords: members.length - withCoords.length,
@@ -206,7 +245,10 @@ export function findDeliveryClusters(
   const all = availableDeliveries
     .map(toNode)
     .sort((a, b) =>
-      a.street.localeCompare(b.street) || (a.house ?? 1e9) - (b.house ?? 1e9) || a.id.localeCompare(b.id),
+      a.neighborhood.localeCompare(b.neighborhood) ||
+      a.street.localeCompare(b.street) ||
+      (a.house ?? 1e9) - (b.house ?? 1e9) ||
+      a.id.localeCompare(b.id),
     );
   const n = all.length;
 

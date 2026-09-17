@@ -189,7 +189,9 @@ function DeliveryCard({ d, campaign, onChanged, onError }: { d: Delivery; campai
         <div>
           <div className="text-lg font-bold">{fullName(d)}</div>
           <div className="text-xl font-semibold text-slate-800">{d.street} {d.house_number}</div>
-          {d.city && d.city !== campaign.city && <div className="text-sm text-slate-500">{d.city}</div>}
+          <div className="text-sm text-slate-500">
+            {[d.neighborhood, d.city && d.city !== campaign.city ? d.city : null].filter(Boolean).join(' · ')}
+          </div>
         </div>
         <DeliveryStatusBadge status={d.status} />
       </div>
@@ -198,10 +200,15 @@ function DeliveryCard({ d, campaign, onChanged, onError }: { d: Delivery; campai
         {d.floor && <Detail label="קומה" value={d.floor} />}
         {d.entrance && <Detail label="כניסה" value={d.entrance} />}
         {d.building_code && <Detail label="קוד" value={d.building_code} mono />}
-        {d.phone && (
-          <div className="col-span-2 flex gap-2">
+        {d.household_size != null && <Detail label="נפשות" value={String(d.household_size)} />}
+        {(d.phone || d.phone2) && (
+          <div className="col-span-2 flex flex-wrap gap-2">
             <dt className="text-slate-500">טלפון:</dt>
-            <dd><a href={`tel:${d.phone}`} className="font-semibold text-brand-700 underline" dir="ltr">{d.phone}</a></dd>
+            {[d.phone, d.phone2].filter(Boolean).map((t) => (
+              <dd key={t as string}>
+                <a href={`tel:${t}`} className="font-semibold text-brand-700 underline" dir="ltr">{t}</a>
+              </dd>
+            ))}
           </div>
         )}
       </dl>

@@ -115,6 +115,58 @@ describe('findDeliveryClusters', () => {
     res.forEach((r) => expect(r.sameStreet).toBe(true));
   });
 
+  it('never mixes neighbourhoods when no coordinates exist (real-list shape)', () => {
+    // Real distribution lists carry a neighbourhood and no coordinates at all.
+    const avail: ClusterInput[] = [
+      { id: 'a1', street: 'אודם', houseNumber: '7', neighborhood: 'אבני חן' },
+      { id: 'a2', street: 'אודם', houseNumber: '9', neighborhood: 'אבני חן' },
+      { id: 'a3', street: 'ברקת', houseNumber: '6', neighborhood: 'אבני חן' },
+      { id: 'b1', street: 'אורן', houseNumber: '34', neighborhood: 'חורש' },
+      { id: 'b2', street: 'אורן', houseNumber: '42', neighborhood: 'חורש' },
+      { id: 'b3', street: 'אלה', houseNumber: '6', neighborhood: 'חורש' },
+    ];
+    const [best] = findDeliveryClusters(avail, 3);
+    expect(best.neighborhoods).toHaveLength(1);
+    expect(new Set(best.deliveryIds.map((id) => id[0])).size).toBe(1);
+  });
+
+  it('crosses streets inside one neighbourhood rather than leaving the cluster short', () => {
+    const avail: ClusterInput[] = [
+      { id: 'a1', street: 'אודם', houseNumber: '7', neighborhood: 'אבני חן' },
+      { id: 'a2', street: 'אודם', houseNumber: '9', neighborhood: 'אבני חן' },
+      { id: 'a3', street: 'ברקת', houseNumber: '6', neighborhood: 'אבני חן' },
+      { id: 'a4', street: 'ברקת', houseNumber: '8', neighborhood: 'אבני חן' },
+      { id: 'z1', street: 'אורן', houseNumber: '34', neighborhood: 'חורש' },
+    ];
+    const [best] = findDeliveryClusters(avail, 4);
+    expect(best.size).toBe(4);
+    expect(best.neighborhoods).toEqual(['אבני חן']);
+    expect(best.streets).toHaveLength(2);
+  });
+
+  it('falls back to street grouping when neighbourhood is missing', () => {
+    const avail: ClusterInput[] = [
+      { id: 's1', street: 'אודם', houseNumber: '7' },
+      { id: 's2', street: 'אודם', houseNumber: '9' },
+      { id: 's3', street: 'אודם', houseNumber: '11' },
+      { id: 'o1', street: 'רחוק', houseNumber: '80' },
+    ];
+    const [best] = findDeliveryClusters(avail, 3);
+    expect([...best.deliveryIds].sort()).toEqual(['s1', 's2', 's3']);
+    expect(best.neighborhoods).toEqual([]);
+  });
+
+  it('prefers coordinates over neighbourhood when both are present', () => {
+    // Mislabelled neighbourhood must not beat real coordinates.
+    const avail: ClusterInput[] = [
+      { id: 'c1', street: 'A', houseNumber: '1', neighborhood: 'X', latitude: 32.0600, longitude: 34.77 },
+      { id: 'c2', street: 'B', houseNumber: '2', neighborhood: 'Y', latitude: 32.0601, longitude: 34.77 },
+      { id: 'c3', street: 'C', houseNumber: '3', neighborhood: 'X', latitude: 32.2000, longitude: 34.90 },
+    ];
+    const [best] = findDeliveryClusters(avail, 2);
+    expect([...best.deliveryIds].sort()).toEqual(['c1', 'c2']);
+  });
+
   it('is deterministic regardless of input order', () => {
     const avail = Array.from({ length: 25 }, (_, i) => d(`id${i}`, `S${i % 5}`, String(i), 32 + (i % 5) * 0.01, 34.7 + Math.floor(i / 5) * 0.001));
     const a = findDeliveryClusters(avail, 6);

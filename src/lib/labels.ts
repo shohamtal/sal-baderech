@@ -30,6 +30,7 @@ export const correctionStatusLabel: Record<CorrectionStatus, string> = {
 };
 
 export const deliveryFieldLabel: Record<DeliveryField, string> = {
+  full_name: 'שם',
   first_name: 'שם פרטי',
   last_name: 'שם משפחה',
   street: 'רחוב',
@@ -38,9 +39,12 @@ export const deliveryFieldLabel: Record<DeliveryField, string> = {
   floor: 'קומה',
   entrance: 'כניסה',
   building_code: 'קוד בניין',
+  neighborhood: 'שכונה',
   city: 'עיר',
   notes: 'הערות',
   phone: 'טלפון',
+  phone2: 'טלפון נוסף',
+  household_size: 'מספר נפשות',
 };
 
 export const auditActionLabel: Record<string, string> = {

@@ -1,6 +1,11 @@
 import type { Delivery } from './types';
 
-export function fullName(d: Pick<Delivery, 'first_name' | 'last_name'>): string {
+/**
+ * Real lists carry one combined name; the older CSV shape splits it. A combined
+ * name is shown as written, since we cannot tell which half is the family name.
+ */
+export function fullName(d: Partial<Pick<Delivery, 'full_name' | 'first_name' | 'last_name'>>): string {
+  if (d.full_name && d.full_name.trim()) return d.full_name.trim();
   const n = [d.first_name, d.last_name].filter(Boolean).join(' ').trim();
   return n ? `משפחת ${n}` : 'נמען ללא שם';
 }
