@@ -53,13 +53,14 @@ authorization decision is made in Postgres. The governing rule:
 > Volunteer approval is the authorization gate.
 > Row Level Security is the final boundary.
 
-Three migrations, applied in order, and the split between them is deliberate:
+Migrations apply in order, and the split between them is deliberate:
 
 | File | Holds |
 |---|---|
 | `0001_schema.sql` | tables, enums, indexes, `updated_at` triggers |
 | `0002_rls.sql` | `app.*` authorization predicates, audit triggers, every RLS policy |
 | `0003_functions.sql` | the `public.*` RPCs that are the real write API |
+| `0004_import_fields.sql` | fields real recipient lists need, and the RPCs that touch them |
 
 `app.is_approved_volunteer(campaign_id)` is the gate for all sensitive data. `app.can_manage_org` and
 `app.can_manage_campaign` handle tenant isolation. They are `SECURITY DEFINER` and `STABLE` so policies
@@ -75,7 +76,9 @@ OR (reserved_by IS NOT NULL AND reserved_by = app.my_volunteer_id() AND app.is_a
 
 Revoking a volunteer therefore removes access instantly, with no cache to invalidate. Unclaimed
 `AVAILABLE` deliveries never come from a table read; they come from `get_available_deliveries()`, which
-returns street, house number and coordinates only, with no names, apartments, floors, codes or phones.
+returns street, house number, neighbourhood and coordinates only, with no names, apartments, floors,
+codes, notes or phones. Keep it that way when adding columns: anything added there is visible to every
+approved volunteer before they claim anything.
 
 `audit_logs`, `campaign_volunteers` and `corrections` have **no INSERT/UPDATE/DELETE policies at all**.
 That is intentional, not an oversight. Every write to them goes through a `SECURITY DEFINER` RPC that
