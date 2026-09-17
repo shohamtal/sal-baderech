@@ -1,6 +1,6 @@
 import { DeliveryMap, MapLegend } from '@/components/DeliveryMap';
 import { deliveryStatusHex } from '@/components/StatusBadge';
-import { Alert, PageSpinner } from '@/components/ui';
+import { Alert, EmptyState, LinkButton, PageSpinner } from '@/components/ui';
 import { addressLine, fullName } from '@/lib/format';
 import { deliveryStatusLabel, errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +29,23 @@ export default function MapTab() {
   const all = data ?? [];
   const shown = all.filter((d) => filter.has(d.status) && d.latitude != null && d.longitude != null);
   const missing = all.filter((d) => d.latitude == null && d.status !== 'CANCELLED').length;
+  const mappable = all.filter((d) => d.latitude != null).length;
+
+  if (all.length === 0) {
+    return <EmptyState title="אין עדיין משלוחים בקמפיין" description="ייבאו קובץ נמענים כדי לראות אותם על המפה."
+      action={<LinkButton to={`/m/${campaign.id}/import`} size="sm">לייבוא נמענים</LinkButton>} />;
+  }
+
+  // A blank map is not an answer: say why it is blank and what to do about it.
+  if (mappable === 0) {
+    return (
+      <EmptyState
+        title="אף משלוח אינו ממופה עדיין"
+        description={`לכל ${all.length} המשלוחים אין קואורדינטות, כי קובץ הייבוא לא כלל קווי אורך ורוחב. אפשר להשלים אותם אוטומטית מ-OpenStreetMap (כשנייה לכתובת), ואז המפה תתמלא.`}
+        action={<LinkButton to={`/m/${campaign.id}/deliveries`} size="md">להשלמת מיקומים</LinkButton>}
+      />
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -66,7 +83,12 @@ export default function MapTab() {
         }))}
       />
       <MapLegend items={STATUSES.map((s) => ({ color: deliveryStatusHex[s], label: deliveryStatusLabel[s] }))} />
-      {missing > 0 && <Alert kind="info">{missing} משלוחים ללא מיקום אינם מוצגים במפה. ניתן להשלים מיקומים בלשונית "משלוחים".</Alert>}
+      {missing > 0 && (
+        <Alert kind="info">
+          {missing} משלוחים ללא מיקום אינם מוצגים במפה.{' '}
+          <LinkButton to={`/m/${campaign.id}/deliveries`} variant="ghost" size="sm">להשלמת מיקומים</LinkButton>
+        </Alert>
+      )}
     </div>
   );
 }

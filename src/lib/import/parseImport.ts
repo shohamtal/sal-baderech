@@ -39,6 +39,8 @@ export interface RowError {
 export interface ImportResult {
   rows: ImportRow[];
   errors: RowError[];
+  /** Non-fatal oddities: the row imports, but the manager should look. */
+  warnings: RowError[];
   /** Headers present in the file that were not recognised. */
   unknownColumns: string[];
   mappedFields: string[];
@@ -139,10 +141,18 @@ export function mapHeaders(headers: string[]): { mapping: Map<string, Target>; u
 // Value normalisation
 // ---------------------------------------------------------------------------
 
+/**
+ * Placeholder text that spreadsheets and exporters leave behind. Never a real
+ * value. A trailing totals row carrying the literal string "null" in its address
+ * column was once imported as a delivery on a street named "null".
+ */
+const PLACEHOLDER = /^(null|undefined|nan|n\/?a|#n\/?a|#value!?|#ref!?|#div\/0!?|none|-+|_+|\.+)$/i;
+
 const str = (v: unknown): string | null => {
   if (v == null) return null;
   const s = String(v).trim();
-  return s === '' ? null : s;
+  if (s === '' || PLACEHOLDER.test(s)) return null;
+  return s;
 };
 
 const num = (v: unknown): number | null | 'invalid' => {
@@ -217,7 +227,7 @@ export function normalizeRows(raw: Record<string, unknown>[]): ImportResult {
       row: 0,
       message: 'הקובץ חייב לכלול עמודות "רחוב" ו"מספר בית", או עמודת "כתובת" מלאה.',
     });
-    return { rows, errors, unknownColumns: unknown, mappedFields, derivedFromAddress };
+    return { rows, errors, warnings: [], unknownColumns: unknown, mappedFields, derivedFromAddress };
   }
 
   const columnsFor = (t: Target): string[] => headers.filter((h) => mapping.get(h) === t);
@@ -227,6 +237,8 @@ export function normalizeRows(raw: Record<string, unknown>[]): ImportResult {
     if (!c) { c = columnsFor(t); cache.set(t, c); }
     return c;
   };
+
+  const warnings: RowError[] = [];
 
   raw.forEach((rec, idx) => {
     const rowNo = idx + 1;
@@ -278,6 +290,20 @@ export function normalizeRows(raw: Record<string, unknown>[]): ImportResult {
       return;
     }
 
+    // A totals row can leave impossible values behind. Keep the delivery, drop the value.
+    const floorNum = floor != null ? Number(floor) : null;
+    if (floorNum != null && Number.isFinite(floorNum) && (floorNum < -5 || floorNum > 60)) {
+      warnings.push({ row: rowNo, message: `קומה לא סבירה (${floor}) — הושמטה` });
+      floor = null;
+    }
+    // Deliberately loose: 3-digit apartments are normal in large buildings
+    // (401 = floor 4, flat 1), so only obviously absurd values are dropped.
+    const aptNum = apartment != null ? Number(apartment) : null;
+    if (aptNum != null && Number.isFinite(aptNum) && aptNum > 9999) {
+      warnings.push({ row: rowNo, message: `מספר דירה לא סביר (${apartment}) — הושמט` });
+      apartment = null;
+    }
+
     // Household size is soft data: ignore nonsense rather than rejecting the family.
     const sizeRaw = num(one('household_size'));
     const size = typeof sizeRaw === 'number' && Number.isInteger(sizeRaw) && sizeRaw >= 1 && sizeRaw <= 30
@@ -305,7 +331,7 @@ export function normalizeRows(raw: Record<string, unknown>[]): ImportResult {
     });
   });
 
-  return { rows, errors, unknownColumns: unknown, mappedFields, derivedFromAddress };
+  return { rows, errors, warnings, unknownColumns: unknown, mappedFields, derivedFromAddress };
 }
 
 /** Template mirrors the real-world column set. */

@@ -186,6 +186,53 @@ describe('normalizeRows on real-world sheets', () => {
     expect(res.unknownColumns).toEqual(['__EMPTY']);
   });
 
+  it('rejects the trailing totals row that a real sheet ended with', () => {
+    // Real file, last row: address literally "null", with column sums in the
+    // numeric columns and everything else blank.
+    const res = normalizeRows([
+      realRow(),
+      { Name: '', phone1: '', phone2: '', address: 'null', comments: '', neighberhood: '',
+        street: '', 'street-number': 1904, entrance: '', apartment: 948, floor: 185,
+        'lobby entrance code': '' },
+    ]);
+    expect(res.rows).toHaveLength(1);
+    expect(res.errors).toHaveLength(1);
+    expect(res.errors[0].row).toBe(2);
+    expect(res.errors[0].message).toContain('חסר רחוב');
+    expect(res.rows.some((r) => r.street === 'null')).toBe(false);
+  });
+
+  it('treats placeholder text as empty wherever it appears', () => {
+    for (const p of ['null', 'NULL', 'undefined', 'NaN', 'N/A', '#N/A', '#VALUE!', '-', '--', 'none']) {
+      const res = normalizeRows([realRow({ street: p, address: p, 'street-number': p })]);
+      expect(res.rows, `placeholder ${p} should not become data`).toHaveLength(0);
+    }
+  });
+
+  it('keeps the delivery but drops an impossible floor', () => {
+    const res = normalizeRows([realRow({ floor: 185, apartment: 948 })]);
+    expect(res.rows).toHaveLength(1);
+    expect(res.rows[0].floor).toBeNull();
+    // 948 is odd but a 3-digit apartment is legitimate, so it is kept.
+    expect(res.rows[0].apartment).toBe('948');
+    expect(res.warnings).toHaveLength(1);
+    expect(res.warnings[0].row).toBe(1);
+    expect(res.warnings[0].message).toContain('קומה');
+  });
+
+  it('only drops an apartment number that cannot exist', () => {
+    expect(normalizeRows([realRow({ apartment: 401 })]).rows[0].apartment).toBe('401');
+    const absurd = normalizeRows([realRow({ apartment: 94812 })]);
+    expect(absurd.rows[0].apartment).toBeNull();
+    expect(absurd.warnings).toHaveLength(1);
+  });
+
+  it('still accepts real basements and high floors', () => {
+    const res = normalizeRows([realRow({ floor: -3 }), realRow({ floor: 0 }), realRow({ floor: 25 })]);
+    expect(res.warnings).toEqual([]);
+    expect(res.rows.map((r) => r.floor)).toEqual(['-3', '0', '25']);
+  });
+
   it('fails clearly when there is neither address nor street columns', () => {
     const res = normalizeRows([{ Name: 'x', neighberhood: 'y' }]);
     expect(res.rows).toHaveLength(0);
