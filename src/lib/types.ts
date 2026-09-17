@@ -62,6 +62,8 @@ export interface CampaignVolunteer {
 export interface Delivery {
   id: string;
   campaign_id: string;
+  /** Single combined name, as real distribution lists provide it. */
+  full_name: string | null;
   first_name: string | null;
   last_name: string | null;
   street: string;
@@ -71,8 +73,11 @@ export interface Delivery {
   entrance: string | null;
   building_code: string | null;
   city: string | null;
+  neighborhood: string | null;
   notes: string | null;
   phone: string | null;
+  phone2: string | null;
+  household_size: number | null;
   latitude: number | null;
   longitude: number | null;
   status: DeliveryStatus;
@@ -91,6 +96,7 @@ export interface AvailableDelivery {
   street: string;
   house_number: string;
   city: string | null;
+  neighborhood: string | null;
   latitude: number | null;
   longitude: number | null;
 }
@@ -107,7 +113,7 @@ export interface Correction {
   created_at: string;
   reviewed_at: string | null;
   reviewed_by: string | null;
-  deliveries?: Pick<Delivery, 'id' | 'first_name' | 'last_name' | 'street' | 'house_number' | 'campaign_id'>;
+  deliveries?: Pick<Delivery, 'id' | 'full_name' | 'first_name' | 'last_name' | 'street' | 'house_number' | 'campaign_id'>;
   volunteers?: Pick<Volunteer, 'id' | 'full_name' | 'phone'>;
 }
 
@@ -157,7 +163,7 @@ export interface CampaignStats {
 }
 
 export const DELIVERY_FIELDS = [
-  'first_name', 'last_name', 'street', 'house_number', 'apartment', 'floor',
-  'entrance', 'building_code', 'city', 'notes', 'phone',
+  'full_name', 'first_name', 'last_name', 'street', 'house_number', 'apartment', 'floor',
+  'entrance', 'building_code', 'neighborhood', 'city', 'notes', 'phone', 'phone2', 'household_size',
 ] as const;
 export type DeliveryField = (typeof DELIVERY_FIELDS)[number];

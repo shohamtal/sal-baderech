@@ -12,8 +12,9 @@ import { useCampaign } from '../CampaignManage';
 type Row = Delivery & { volunteers: { full_name: string; phone: string } | null };
 
 const EMPTY: Partial<Delivery> = {
-  first_name: '', last_name: '', street: '', house_number: '', apartment: '', floor: '', entrance: '',
-  building_code: '', city: '', notes: '', phone: '', latitude: null, longitude: null,
+  full_name: '', first_name: '', last_name: '', street: '', house_number: '', apartment: '', floor: '',
+  entrance: '', building_code: '', city: '', neighborhood: '', notes: '', phone: '', phone2: '',
+  household_size: null, latitude: null, longitude: null,
 };
 
 export default function DeliveriesTab() {
@@ -41,7 +42,8 @@ export default function DeliveriesTab() {
     return (data ?? []).filter((d) => {
       if (status !== 'ALL' && d.status !== status) return false;
       if (!term) return true;
-      return [d.first_name, d.last_name, d.street, d.house_number, d.city, d.notes, d.phone, d.volunteers?.full_name]
+      return [d.full_name, d.first_name, d.last_name, d.street, d.house_number, d.city, d.neighborhood,
+        d.notes, d.phone, d.phone2, d.volunteers?.full_name]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(term));
     });
@@ -51,7 +53,11 @@ export default function DeliveriesTab() {
     setError(null);
     const clean = (v: unknown) => (v == null || String(v).trim() === '' ? null : String(v).trim());
     const payload = {
+      full_name: clean(values.full_name),
       first_name: clean(values.first_name), last_name: clean(values.last_name),
+      neighborhood: clean(values.neighborhood), phone2: clean(values.phone2),
+      household_size: values.household_size == null || String(values.household_size).trim() === ''
+        ? null : Number(values.household_size),
       street: clean(values.street) ?? '', house_number: clean(values.house_number) ?? '',
       apartment: clean(values.apartment), floor: clean(values.floor), entrance: clean(values.entrance),
       building_code: clean(values.building_code), city: clean(values.city), notes: clean(values.notes), phone: clean(values.phone),
@@ -96,7 +102,7 @@ export default function DeliveriesTab() {
     let found = 0;
     await geocodeSequential(
       missing,
-      (d) => `${d.street} ${d.house_number}, ${d.city ?? campaign.city ?? ''}`,
+      (d) => [`${d.street} ${d.house_number}`, d.neighborhood, d.city ?? campaign.city].filter(Boolean).join(', '),
       async (d, r, i) => {
         if (r) {
           found++;
@@ -146,11 +152,13 @@ export default function DeliveriesTab() {
               <div className="min-w-0">
                 <div className="font-bold">{fullName(d)}</div>
                 <div className="text-slate-700">
+                  {d.neighborhood && <span className="text-slate-500">{d.neighborhood} · </span>}
                   {addressLine(d, campaign.city)}
                   {d.apartment && ` · דירה ${d.apartment}`}
                   {d.floor && ` · קומה ${d.floor}`}
                   {d.entrance && ` · כניסה ${d.entrance}`}
                   {d.building_code && ` · קוד ${d.building_code}`}
+                  {d.household_size != null && ` · ${d.household_size} נפשות`}
                 </div>
                 {d.notes && <div className="text-sm text-amber-800">📝 {d.notes}</div>}
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -208,6 +216,8 @@ function DeliveryFormModal({ editing, onClose, onSave, error }: { editing: Parti
     <Modal open onClose={onClose} title={editing.id ? 'עריכת משלוח' : 'משלוח חדש'}>
       <form onSubmit={submit} className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
+          {text('full_name')}
+          {text('neighborhood')}
           {text('first_name')}
           {text('last_name')}
           {text('street', { required: true })}
@@ -217,7 +227,9 @@ function DeliveryFormModal({ editing, onClose, onSave, error }: { editing: Parti
           {text('entrance')}
           {text('building_code')}
           {text('city')}
+          {text('household_size', { type: 'number', inputMode: 'numeric' })}
           {text('phone', { type: 'tel', dir: 'ltr' })}
+          {text('phone2', { type: 'tel', dir: 'ltr' })}
           <Field label="קו רוחב"><Input dir="ltr" inputMode="decimal" value={values.latitude ?? ''} onChange={set('latitude')} /></Field>
           <Field label="קו אורך"><Input dir="ltr" inputMode="decimal" value={values.longitude ?? ''} onChange={set('longitude')} /></Field>
         </div>

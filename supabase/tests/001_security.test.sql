@@ -2,7 +2,7 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(52);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -65,13 +65,13 @@ insert into public.organization_managers (organization_id, user_id, email) value
 insert into public.campaigns (id, organization_id, name, status, public_slug) values
   (:camp_a, :org_a, 'Campaign A', 'OPEN', 'slug-a'),
   (:camp_b, :org_b, 'Campaign B', 'OPEN', 'slug-b');
-insert into public.deliveries (id, campaign_id, first_name, last_name, street, house_number, apartment, building_code) values
-  ('00000000-0000-0000-0000-00000000d001', :camp_a, 'Cohen', 'Family', 'Herzl', '10', '3', '1234'),
-  ('00000000-0000-0000-0000-00000000d002', :camp_a, 'Levi', 'Family', 'Herzl', '12', '7', null),
-  ('00000000-0000-0000-0000-00000000d003', :camp_a, 'Mizrahi', 'Family', 'Herzl', '14', '1', '5678'),
-  ('00000000-0000-0000-0000-00000000d004', :camp_a, 'Peretz', 'Family', 'Herzl', '18', '12', null),
-  ('00000000-0000-0000-0000-00000000d005', :camp_a, 'Biton', 'Family', 'Allenby', '7', '2', null),
-  ('00000000-0000-0000-0000-00000000d101', :camp_b, 'Other', 'Org', 'Secret St', '1', '1', '0000');
+insert into public.deliveries (id, campaign_id, first_name, last_name, street, house_number, apartment, building_code, neighborhood) values
+  ('00000000-0000-0000-0000-00000000d001', :camp_a, 'Cohen', 'Family', 'Herzl', '10', '3', '1234', 'Old Town'),
+  ('00000000-0000-0000-0000-00000000d002', :camp_a, 'Levi', 'Family', 'Herzl', '12', '7', null, 'Old Town'),
+  ('00000000-0000-0000-0000-00000000d003', :camp_a, 'Mizrahi', 'Family', 'Herzl', '14', '1', '5678', 'Old Town'),
+  ('00000000-0000-0000-0000-00000000d004', :camp_a, 'Peretz', 'Family', 'Herzl', '18', '12', null, 'Old Town'),
+  ('00000000-0000-0000-0000-00000000d005', :camp_a, 'Biton', 'Family', 'Allenby', '7', '2', null, 'Old Town'),
+  ('00000000-0000-0000-0000-00000000d101', :camp_b, 'Other', 'Org', 'Secret St', '1', '1', '0000', 'Hidden');
 
 -- ---------------------------------------------------------------------------
 -- 1. Anonymous (not logged in) visitor with the public URL
@@ -196,6 +196,10 @@ select tests.login(:vol_1);
 
 select is((select count(*) from public.get_available_deliveries(:camp_a)), 5::bigint,
   'vol1 APPROVED: sees 5 available deliveries (limited columns)');
+select bag_has(
+  $$ select neighborhood from public.get_available_deliveries('00000000-0000-0000-0000-00000000c001') $$,
+  $$ values ('Old Town'::text) $$,
+  'vol1 APPROVED: available list exposes neighbourhood for clustering');
 
 select is((select count(*) from public.deliveries), 0::bigint,
   'vol1 APPROVED but nothing claimed: SELECT deliveries still returns 0 rows');
@@ -256,20 +260,38 @@ select is((select apartment from public.deliveries where id = '00000000-0000-000
 select is(
   (select status from public.submit_correction('00000000-0000-0000-0000-00000000d002', 'apartment', '5', 'Family said apt 5')),
   'PENDING'::public.correction_status, 'vol1: submits a correction request');
+select is(
+  (select status from public.submit_correction('00000000-0000-0000-0000-00000000d002', 'full_name', 'משפחת כהן', null)),
+  'PENDING'::public.correction_status, 'vol1: submits a full_name correction');
+select is(
+  (select status from public.submit_correction('00000000-0000-0000-0000-00000000d002', 'household_size', '5', null)),
+  'PENDING'::public.correction_status, 'vol1: submits a household_size correction');
 
 select tests.logout();
 
 select tests.login(:manager_a);
 
 select is(
-  (select status from public.review_correction((select id from public.corrections limit 1), true)),
+  (select status from public.review_correction((select id from public.corrections where field_name = 'apartment'), true)),
   'APPROVED'::public.correction_status, 'manager A: approves the correction');
 select is((select apartment from public.deliveries where id = '00000000-0000-0000-0000-00000000d002'), '5',
   'correction approval updated the delivery');
-select is((select old_value from public.corrections limit 1), '7',
+select is((select old_value from public.corrections where field_name = 'apartment'), '7',
   'correction record preserved old value (audit trail)');
-select is((select reviewed_by from public.corrections limit 1), :manager_a::uuid,
+select is((select reviewed_by from public.corrections where field_name = 'apartment'), :manager_a::uuid,
   'correction record stores reviewer');
+
+-- Fields added for real-world lists: a combined name and a non-text column.
+select is(
+  (select status from public.review_correction((select id from public.corrections where field_name = 'full_name'), true)),
+  'APPROVED'::public.correction_status, 'manager A: approves a full_name correction');
+select is((select full_name from public.deliveries where id = '00000000-0000-0000-0000-00000000d002'),
+  'משפחת כהן', 'full_name correction applied');
+select is(
+  (select status from public.review_correction((select id from public.corrections where field_name = 'household_size'), true)),
+  'APPROVED'::public.correction_status, 'manager A: approves a household_size correction');
+select is((select household_size from public.deliveries where id = '00000000-0000-0000-0000-00000000d002'), 5,
+  'household_size correction cast text to integer correctly');
 select ok(exists (select 1 from public.audit_logs where action = 'CORRECTION_APPROVED'),
   'audit log has CORRECTION_APPROVED entry');
 
