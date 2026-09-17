@@ -142,6 +142,15 @@ export default function ImportTab() {
             </Alert>
           )}
 
+          {result.warnings.length > 0 && (
+            <Card>
+              <h3 className="mb-2 font-bold text-amber-700">אזהרות ({result.warnings.length}) — השורות ייובאו, כדאי לבדוק</h3>
+              <ul className="max-h-40 space-y-1 overflow-y-auto text-sm">
+                {result.warnings.map((w, i) => <li key={i}>שורה {w.row}: {w.message}</li>)}
+              </ul>
+            </Card>
+          )}
+
           {result.errors.length > 0 && (
             <Card>
               <h3 className="mb-2 font-bold text-red-700">שגיאות ({result.errors.length}) — שורות אלו לא ייובאו</h3>

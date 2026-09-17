@@ -23,7 +23,7 @@ export default function DeliveriesTab() {
   const [status, setStatus] = useState<DeliveryStatus | 'ALL'>('ALL');
   const [editing, setEditing] = useState<Partial<Delivery> | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [geo, setGeo] = useState<{ done: number; total: number; found: number } | null>(null);
+  const [geo, setGeo] = useState<{ done: number; total: number; house: number; street: number; failed: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const { data, loading, error: loadError, reload } = useAsync(async () => {
@@ -96,19 +96,28 @@ export default function DeliveriesTab() {
   async function geocodeMissing() {
     const missing = (data ?? []).filter((d) => d.latitude == null && d.status !== 'CANCELLED');
     if (!missing.length) return;
-    if (!confirm(`לחפש מיקום עבור ${missing.length} כתובות דרך OpenStreetMap? (כשנייה לכל כתובת)`)) return;
+    const minutes = Math.ceil((missing.length * 1.2) / 60);
+    if (!confirm(
+      `לחפש מיקום עבור ${missing.length} כתובות דרך OpenStreetMap?\n` +
+      `התהליך נמשך כ-${minutes} דקות (שנייה לכל כתובת). אפשר לעצור באמצע, ומה שנמצא נשמר.\n` +
+      `השאירו את המסך פתוח.`,
+    )) return;
     abortRef.current = new AbortController();
-    setGeo({ done: 0, total: missing.length, found: 0 });
-    let found = 0;
+    const stats = { done: 0, total: missing.length, house: 0, street: 0, failed: 0 };
+    setGeo({ ...stats });
     await geocodeSequential(
       missing,
-      (d) => [`${d.street} ${d.house_number}`, d.neighborhood, d.city ?? campaign.city].filter(Boolean).join(', '),
+      (d) => ({ street: d.street, house_number: d.house_number, city: d.city }),
+      campaign.city,
       async (d, r, i) => {
         if (r) {
-          found++;
+          if (r.precision === 'house') stats.house++; else stats.street++;
           await supabase.from('deliveries').update({ latitude: r.latitude, longitude: r.longitude }).eq('id', d.id);
+        } else {
+          stats.failed++;
         }
-        setGeo({ done: i + 1, total: missing.length, found });
+        stats.done = i + 1;
+        setGeo({ ...stats });
       },
       abortRef.current.signal,
     );
@@ -137,7 +146,8 @@ export default function DeliveriesTab() {
         )}
         {geo && (
           <span className="inline-flex items-center gap-2">
-            מחפש מיקומים… {geo.done}/{geo.total} (נמצאו {geo.found})
+            מחפש מיקומים… {geo.done}/{geo.total} · מדויק {geo.house} · ברמת רחוב {geo.street}
+            {geo.failed > 0 && ` · לא נמצאו ${geo.failed}`}
             <Button size="sm" variant="ghost" onClick={() => abortRef.current?.abort()}>עצירה</Button>
           </span>
         )}
