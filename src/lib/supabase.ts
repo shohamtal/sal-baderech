@@ -1,14 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Note: an unset GitHub Actions secret becomes an EMPTY STRING at build time, not
+// undefined, so `??` is not enough here — empty values must fall back too, otherwise
+// createClient() throws at module load and the app white-screens before it can render
+// the configuration-error screen.
+const rawUrl = (import.meta.env.VITE_SUPABASE_URL ?? '').trim();
+const rawKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim();
 
-export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const SUPABASE_URL = rawUrl;
+export const SUPABASE_ANON_KEY = rawKey;
 
-// The anon key is public by design; every sensitive rule is enforced by RLS.
+/** False when either value is missing/blank; App renders a setup screen instead. */
+export const isSupabaseConfigured = Boolean(rawUrl && rawKey);
+
+// Placeholders keep createClient() from throwing when unconfigured. They are never
+// reached: App short-circuits to the setup screen when isSupabaseConfigured is false.
+// The anon/publishable key is public by design; every sensitive rule is enforced by RLS.
 export const supabase = createClient(
-  SUPABASE_URL ?? 'http://localhost:54321',
-  SUPABASE_ANON_KEY ?? 'missing-anon-key',
+  rawUrl || 'http://127.0.0.1:54321',
+  rawKey || 'unconfigured-placeholder-key',
   {
     auth: {
       persistSession: true,
