@@ -47,6 +47,11 @@ describe('authorizeAction', () => {
     expect(authorizeAction(manager('m', [ORG_A]), volunteer('v'), 'set_password').allowed).toBe(false);
   });
 
+  it('keeps purging abandoned sign-ups with the platform admin', () => {
+    expect(authorizeAction(admin(), admin(), 'purge_abandoned').allowed).toBe(true);
+    expect(authorizeAction(manager('m', [ORG_A]), manager('m', [ORG_A]), 'purge_abandoned').allowed).toBe(false);
+  });
+
   it('keeps account deletion with the platform admin', () => {
     expect(authorizeAction(manager('m', [ORG_A]), manager('t', [ORG_A]), 'delete_user').allowed).toBe(false);
   });

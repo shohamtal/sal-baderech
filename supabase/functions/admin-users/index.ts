@@ -50,9 +50,25 @@ Deno.serve(async (req) => {
     return json({ error: 'INVALID_REQUEST' }, 400);
   }
   const { action, user_id: targetId, password, email } = body;
-  if (!action || !targetId) return json({ error: 'INVALID_REQUEST' }, 400);
+  if (!action) return json({ error: 'INVALID_REQUEST' }, 400);
+  if (action !== 'purge_abandoned' && !targetId) return json({ error: 'INVALID_REQUEST' }, 400);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+  // Housekeeping acts on no particular account, so it is handled before the
+  // per-target checks below.
+  if (action === 'purge_abandoned') {
+    if (!isPlatformAdmin) return json({ error: 'FORBIDDEN' }, 403);
+    const { data: list, error } = await admin.rpc('admin_abandoned_signup_ids');
+    if (error) return json({ error: error.message }, 400);
+    const ids = (list ?? []) as string[];
+    let deleted = 0;
+    for (const id of ids) {
+      const { error: delErr } = await admin.auth.admin.deleteUser(id);
+      if (!delErr) deleted++;
+    }
+    return json({ ok: true, deleted });
+  }
 
   // Describe the target from the database, never from the request body.
   const [{ data: targetAdmin }, { data: targetOrgs, error: targetOrgsErr }] = await Promise.all([

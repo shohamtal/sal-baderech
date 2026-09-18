@@ -153,7 +153,12 @@ function RegisterCard({
       const { error } = await supabase.rpc('register_volunteer_for_org', {
         p_org_slug: orgSlug, p_full_name: name, p_phone: phone,
       });
-      if (error) throw error;
+      if (error) {
+        // The anonymous session exists but no volunteer profile does. Drop it,
+        // rather than leaving a nameless account behind on every failed try.
+        await supabase.auth.signOut().catch(() => {});
+        throw error;
+      }
       await onRegistered();
     } catch (err) {
       setError(errorMessage(err));

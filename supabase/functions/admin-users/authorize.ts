@@ -5,7 +5,7 @@
  * this is the only thing standing between an organization manager and a
  * password reset on someone else's account.
  */
-export type AdminActionName = 'set_password' | 'update_email' | 'delete_user';
+export type AdminActionName = 'set_password' | 'update_email' | 'delete_user' | 'purge_abandoned';
 
 export interface Actor {
   userId: string;
@@ -27,6 +27,9 @@ export function authorizeAction(caller: Actor, target: Actor, action: AdminActio
   if (action === 'delete_user' && caller.userId === target.userId) {
     return { allowed: false, reason: 'CANNOT_DELETE_SELF' };
   }
+
+  // Housekeeping across every account is a platform-admin power.
+  if (action === 'purge_abandoned') return caller.isPlatformAdmin ? { allowed: true } : DENY;
 
   if (caller.isPlatformAdmin) return { allowed: true };
 
