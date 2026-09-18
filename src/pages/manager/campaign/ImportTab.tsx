@@ -1,10 +1,12 @@
+import { GeocodePanel } from '@/components/GeocodePanel';
 import { Alert, Button, Card, Field, Select } from '@/components/ui';
+import { emptyProgress, fetchPendingGeocode, geocodeDeliveries, type GeocodeProgress } from '@/lib/geocodeRun';
 import { IMPORT_TEMPLATE_HEADERS, isUnnamedHeader, normalizeRows, type ImportResult } from '@/lib/import/parseImport';
 import { downloadTemplateCsv, readImportFile, type ParsedWorkbook } from '@/lib/import/readImportFile';
 import { deliveryFieldLabel, errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
 import type { DeliveryField } from '@/lib/types';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCampaign } from '../CampaignManage';
 
@@ -18,6 +20,9 @@ export default function ImportTab() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<number | null>(null);
+  const [geo, setGeo] = useState<GeocodeProgress | null>(null);
+  const [geoRunning, setGeoRunning] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   function analyze(wb: ParsedWorkbook, sheetName: string) {
     try {
@@ -66,6 +71,24 @@ export default function ImportTab() {
     if (error) return setError(errorMessage(error));
     setDone(data as number);
     setResult(null);
+    // Lists almost never carry coordinates, so locate them now rather than
+    // leaving the manager with an empty map and a button to discover.
+    void runGeocode();
+  }
+
+  async function runGeocode() {
+    try {
+      const pending = await fetchPendingGeocode(campaign.id);
+      if (!pending.length) return;
+      abortRef.current = new AbortController();
+      setGeoRunning(true);
+      setGeo(emptyProgress(pending.length));
+      await geocodeDeliveries(pending, campaign.city, setGeo, abortRef.current.signal);
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setGeoRunning(false);
+    }
   }
 
   const namedUnknown = (result?.unknownColumns ?? []).filter((c) => !isUnnamedHeader(c));
@@ -117,6 +140,21 @@ export default function ImportTab() {
           <button type="button" className="underline" onClick={() => navigate(`/m/${campaign.id}/deliveries`)}>
             למשלוחים
           </button>
+        </Alert>
+      )}
+
+      {geo && (
+        <GeocodePanel
+          progress={geo}
+          running={geoRunning}
+          onStop={() => abortRef.current?.abort()}
+          onResolved={() => setDone((d) => d)}
+        />
+      )}
+      {done != null && !geoRunning && geo && geo.done >= geo.total && (
+        <Alert kind="success">
+          הקמפיין מוכן. {geo.house + geo.street} מתוך {geo.total} המשלוחים ממופים.{' '}
+          <button type="button" className="underline" onClick={() => navigate(`/m/${campaign.id}/map`)}>למפה</button>
         </Alert>
       )}
 

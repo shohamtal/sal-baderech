@@ -1,9 +1,9 @@
 /**
  * Free geocoding via OpenStreetMap Nominatim.
  *
- * Usage policy: at most 1 request/second, so callers must go through
- * geocodeSequential. Failures never block anything: the delivery stays usable
- * and the manager can fill coordinates in by hand.
+ * Usage policy: at most 1 request/second, which geocodeRun enforces between
+ * calls. Failures never block anything: the delivery stays usable and the
+ * manager can fill coordinates in by hand.
  *
  * Deliberately does NOT send the neighbourhood. Recipient lists use local
  * names that differ from OSM's (a list saying "חורש" against OSM's "החורש"),
@@ -65,24 +65,8 @@ export async function geocodeDelivery(
       const precision: 'house' | 'street' = i === 0 && (t.house_number ?? '').trim() ? 'house' : 'street';
       return { latitude: r.lat, longitude: r.lon, precision };
     }
-    if (i < queries.length - 1) await sleep(1100); // stay within the usage policy
+    // Stay within the usage policy between the building and street attempts.
+    if (i < queries.length - 1) await new Promise((r) => setTimeout(r, 1100));
   }
   return null;
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-export async function geocodeSequential<T>(
-  items: T[],
-  toTarget: (item: T) => GeocodeTarget,
-  fallbackCity: string | null,
-  onResult: (item: T, result: GeocodeResult | null, index: number) => Promise<void> | void,
-  signal?: AbortSignal,
-): Promise<void> {
-  for (let i = 0; i < items.length; i++) {
-    if (signal?.aborted) return;
-    const result = await geocodeDelivery(toTarget(items[i]), fallbackCity, signal);
-    await onResult(items[i], result, i);
-    if (i < items.length - 1) await sleep(1100);
-  }
 }

@@ -131,6 +131,24 @@ decoration: real recipient lists arrive with a neighbourhood column and no coord
 without it every cluster would be guesswork. Deliberately no odd/even street-side logic. Keep it
 decoupled from React.
 
+Geocoding is deliberately split across three files. `geocode.ts` asks Nominatim for the building then
+the street. `addressSuggest.ts` proposes corrections through Photon for addresses that resolve to
+nothing. `geocodeRun.ts` drives both and runs automatically after an import, because a list with no
+coordinates would otherwise leave the manager staring at an empty map.
+
+Four things there are load-bearing and were each found the hard way:
+
+- **Nothing ever rewrites an address on its own.** A failed lookup produces a suggestion card that a
+  manager approves. Silently correcting a street would send a volunteer to the wrong building with
+  nobody noticing.
+- **Never send the neighbourhood to a geocoder.** Lists use local names that differ from
+  OpenStreetMap's (`חורש` against `החורש`), and the mismatch turns a working query into no result.
+- **Photon picks its language from `Accept-Language`.** A browser asking for English gets `Harish` and
+  `Achdut` where Node with no header gets `חריש` and `אחדות`, so the header is set explicitly and
+  candidates are filtered by distance from the campaign rather than by comparing city names.
+- **Nominatim returns 403 without a User-Agent.** Browsers always send one so the app is fine, but a
+  Node script that geocodes must set it or every lookup silently fails.
+
 `src/lib/import/parseImport.ts` is aligned to the columns real lists use (`Name`, `phone1`, `phone2`,
 `address`, `comments`, `neighberhood` including that spelling, `street`, `street-number`, `entrance`,
 `apartment`, `floor`, `lobby entrance code`), plus Hebrew equivalents. Three behaviours there exist
