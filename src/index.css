@@ -45,3 +45,22 @@ body {
   height: 28px;
   border-color: #facc15;
 }
+
+/* Dots carrying a house number need room for the text. */
+.marker-dot--labelled {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  direction: ltr;
+}
+.marker-dot--labelled.selected {
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
+}

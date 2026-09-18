@@ -73,6 +73,7 @@ export default function MapTab() {
           latitude: d.latitude!,
           longitude: d.longitude!,
           color: deliveryStatusHex[d.status],
+          label: d.house_number,
           popup: (
             <div className="text-sm">
               <div className="font-bold">{fullName(d)}</div>
