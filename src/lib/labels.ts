@@ -25,6 +25,7 @@ export const deliveryStatusLabel: Record<DeliveryStatus, string> = {
   RESERVED: 'שמור',
   IN_PROGRESS: 'בדרך',
   DELIVERED: 'נמסר',
+  UNDELIVERABLE: 'לא נמסר',
   CANCELLED: 'בוטל',
 };
 
@@ -69,6 +70,9 @@ export const auditActionLabel: Record<string, string> = {
   CORRECTION_SUBMITTED: 'בקשת תיקון הוגשה',
   CORRECTION_APPROVED: 'בקשת תיקון אושרה',
   CORRECTION_REJECTED: 'בקשת תיקון נדחתה',
+  DELIVERY_UNDELIVERABLE: 'דווח שלא ניתן למסור',
+  UNDELIVERABLE_RETRY: 'הוחזר למאגר לניסיון נוסף',
+  UNDELIVERABLE_CANCEL: 'בוטל לאחר שלא ניתן למסור',
 };
 
 /** Map Postgres/RPC error messages to Hebrew. */
@@ -94,6 +98,12 @@ export function errorMessage(err: unknown): string {
     'Email not confirmed': 'יש לאשר את כתובת האימייל לפני ההתחברות.',
     'User already registered': 'משתמש עם אימייל זה כבר קיים.',
     'Anonymous sign-ins are disabled': 'הרשמה אנונימית אינה מופעלת בפרויקט Supabase. יש להפעיל אותה בהגדרות.',
+    WEAK_PASSWORD: 'הסיסמה חייבת להכיל לפחות 8 תווים.',
+    INVALID_EMAIL: 'כתובת אימייל לא תקינה.',
+    CANNOT_DELETE_SELF: 'אי אפשר למחוק את המשתמש שאיתו את/ה מחובר/ת.',
+    UNKNOWN_ACTION: 'פעולה לא מוכרת.',
+    CAMPAIGN_ALREADY_PUBLISHED: 'כבר קיים קמפיין מפורסם בארגון. יש לסיים אותו לפני פרסום קמפיין אחר.',
+    'campaigns_one_published_per_org': 'כבר קיים קמפיין מפורסם בארגון. יש לסיים אותו לפני פרסום קמפיין אחר.',
   };
   for (const key of Object.keys(map)) {
     if (raw.includes(key)) return map[key];

@@ -1,5 +1,4 @@
 import { useAuth } from '@/auth/AuthProvider';
-import { AppShell } from '@/components/Layout';
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Modal, PageSpinner } from '@/components/ui';
 import { errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +9,7 @@ import { Link } from 'react-router-dom';
 
 interface Admin { id: string; email: string; user_id: string | null }
 
-export default function AdminOrganizations() {
+export default function OrganizationsTab() {
   const { ctx } = useAuth();
   const [open, setOpen] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
@@ -42,7 +41,7 @@ export default function AdminOrganizations() {
   }
 
   return (
-    <AppShell title="ניהול פלטפורמה" wide>
+    <>
       {loading && <PageSpinner />}
       {loadError && <Alert kind="error">{errorMessage(loadError)}</Alert>}
       {error && <Alert kind="error" className="mb-3">{error}</Alert>}
@@ -56,11 +55,12 @@ export default function AdminOrganizations() {
             {data.orgs.length === 0 && <EmptyState title="אין ארגונים" description="צרו את הארגון הראשון." />}
             <div className="space-y-2">
               {data.orgs.map((o) => (
-                <Link key={o.id} to={`/admin/org/${o.id}`} className="block">
+                <Link key={o.id} to={`/${encodeURIComponent(o.slug)}/admin`} className="block">
                   <Card className="flex items-center justify-between gap-3">
                     <div>
                       <div className="font-bold">{o.name}</div>
                       <div className="text-sm text-slate-500">{[o.city, o.contact_name, o.contact_phone].filter(Boolean).join(' · ')}</div>
+                      <div className="mt-0.5 text-xs text-slate-400" dir="ltr">/{o.slug}</div>
                     </div>
                     <Badge color={o.active ? 'green' : 'red'}>{o.active ? 'פעיל' : 'לא פעיל'}</Badge>
                   </Card>
@@ -92,7 +92,7 @@ export default function AdminOrganizations() {
         </div>
       )}
       <NewOrgModal open={open} onClose={() => setOpen(false)} onCreated={reload} />
-    </AppShell>
+    </>
   );
 }
 

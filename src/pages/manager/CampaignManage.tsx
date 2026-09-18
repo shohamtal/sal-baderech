@@ -45,7 +45,8 @@ export default function CampaignManage() {
   const base = `/m/${campaignId}`;
   return (
     <Ctx.Provider value={{ ...data, reload }}>
-      <AppShell title={data.campaign.name} back={`/org/${data.org.id}`} wide actions={<CampaignStatusBadge status={data.campaign.status} />}>
+      <AppShell title={data.campaign.name} back={`/${encodeURIComponent(data.org.slug)}/admin/campaigns`} wide
+        actions={<CampaignStatusBadge status={data.campaign.status} />}>
         <TabBar
           tabs={[
             { to: base, label: 'סקירה', end: true },

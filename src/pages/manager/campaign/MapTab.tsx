@@ -10,11 +10,11 @@ import clsx from 'clsx';
 import { useState } from 'react';
 import { useCampaign } from '../CampaignManage';
 
-const STATUSES: DeliveryStatus[] = ['AVAILABLE', 'RESERVED', 'IN_PROGRESS', 'DELIVERED', 'CANCELLED'];
+const STATUSES: DeliveryStatus[] = ['AVAILABLE', 'RESERVED', 'IN_PROGRESS', 'DELIVERED', 'UNDELIVERABLE', 'CANCELLED'];
 
 export default function MapTab() {
   const { campaign } = useCampaign();
-  const [filter, setFilter] = useState<Set<DeliveryStatus>>(new Set(['AVAILABLE', 'RESERVED', 'IN_PROGRESS', 'DELIVERED']));
+  const [filter, setFilter] = useState<Set<DeliveryStatus>>(new Set(['AVAILABLE', 'RESERVED', 'IN_PROGRESS', 'DELIVERED', 'UNDELIVERABLE']));
   const { data, loading, error } = useAsync(async () => {
     const { data, error } = await supabase
       .from('deliveries')

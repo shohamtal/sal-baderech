@@ -7,7 +7,7 @@ import { useState, type FormEvent } from 'react';
 import { useCampaign } from '../CampaignManage';
 
 export default function SettingsTab() {
-  const { campaign, reload } = useCampaign();
+  const { campaign, org, reload } = useCampaign();
   const [name, setName] = useState(campaign.name);
   const [description, setDescription] = useState(campaign.description ?? '');
   const [city, setCity] = useState(campaign.city ?? '');
@@ -18,7 +18,9 @@ export default function SettingsTab() {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const publicUrl = `${window.location.origin}${window.location.pathname}#/c/${campaign.public_slug}`;
+  // The organization link is permanent and always points at the published
+  // campaign, so it is what managers should share.
+  const publicUrl = `${window.location.origin}${window.location.pathname}#/${encodeURIComponent(org.slug)}/home`;
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -55,7 +57,8 @@ export default function SettingsTab() {
       <Card>
         <h2 className="mb-1 font-bold">קישור ציבורי להרשמת מתנדבים</h2>
         <p className="mb-3 text-sm text-slate-500">
-          שתפו את הקישור בוואטסאפ או הדפיסו את ה-QR. הקישור מאפשר הרשמה בלבד — מתנדבים לא יראו כתובות עד שתאשרו אותם.
+          זהו הקישור הקבוע של הארגון, והוא מוביל תמיד לקמפיין המפורסם. שתפו אותו בוואטסאפ או הדפיסו את ה-QR.
+          הקישור מאפשר הרשמה בלבד — מתנדבים לא יראו כתובות עד שתאשרו אותם.
         </p>
         <div className="flex flex-col items-center gap-3">
           <div className="rounded-2xl bg-white p-3 ring-1 ring-slate-200">
@@ -70,7 +73,9 @@ export default function SettingsTab() {
           </div>
         </div>
         {campaign.status !== 'PUBLISHED' && (
-          <Alert kind="warning" className="mt-3">הקמפיין במצב "{campaignStatusLabel[campaign.status]}" — ההרשמה סגורה. שנו את הסטטוס ל"פתוח להרשמה".</Alert>
+          <Alert kind="warning" className="mt-3">
+            הקמפיין במצב "{campaignStatusLabel[campaign.status]}" — הקישור לא יציג אותו. שנו את הסטטוס ל"פורסם".
+          </Alert>
         )}
       </Card>
 

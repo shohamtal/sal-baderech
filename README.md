@@ -44,16 +44,19 @@ Supabase (Postgres, Auth, RLS, RPC) · GitHub Actions → GitHub Pages. No serve
 ## Project layout
 
 ```
-supabase/migrations/   0001 schema · 0002 RLS + helpers · 0003 RPC functions
+supabase/migrations/   schema, RLS, RPCs, and later additions (see CLAUDE.md)
+supabase/functions/    admin-users: account actions needing the service-role key
 supabase/tests/        pgTAP suite: RLS, org isolation, atomic claim, corrections, revoke
 supabase/seed.sql      local dev data (admin/manager users, demo campaign)
 src/lib/clustering/    findDeliveryClusters() — pure, deterministic, unit-tested
 src/lib/import/        CSV/XLSX header mapping + validation (Hebrew & English headers)
-src/pages/public       campaign landing (/#/c/:slug), login, home
-src/pages/volunteer    my campaigns, request cluster, my deliveries (+map, Waze, corrections)
-src/pages/manager      org campaigns, campaign console (dashboard, deliveries, map, volunteers,
-                       corrections, import, audit, settings + QR/WhatsApp share)
-src/pages/admin        organizations & managers & platform admins
+src/pages/public       login, role-based landing, legacy campaign links
+src/pages/volunteer    /:orgSlug/home — approval, pick addresses, my tasks (Waze, delivered,
+                       undeliverable, corrections)
+src/pages/org          /:orgSlug/admin — dashboard, users, campaigns, settings
+src/pages/manager      campaign console (dashboard, deliveries, map, volunteers, corrections,
+                       import, audit, settings + QR/WhatsApp share)
+src/pages/admin        /admin — organizations and the platform-wide user directory
 src/integration/       real two-client concurrency test against a local Supabase
 .github/workflows/     ci.yml (lint, unit tests, build, pgTAP) · deploy.yml (GitHub Pages)
 ```

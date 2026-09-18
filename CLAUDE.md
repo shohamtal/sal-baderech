@@ -63,6 +63,7 @@ Migrations apply in order, and the split between them is deliberate:
 | `0004_import_fields.sql` | fields real recipient lists need, and the RPCs that touch them |
 | `0005_audit_cascade_fix.sql` | lets a campaign with deliveries actually be deleted |
 | `0006_campaign_status.sql` | the three-state campaign lifecycle |
+| `0007`–`0010` | organization slugs, user directories, the undeliverable state |
 
 `app.is_approved_volunteer(campaign_id)` is the gate for all sensitive data. `app.can_manage_org` and
 `app.can_manage_campaign` handle tenant isolation. They are `SECURITY DEFINER` and `STABLE` so policies
@@ -127,6 +128,34 @@ Authentication and authorization are separate. Being signed in grants nothing by
   invite-by-email safe, so keep email confirmations on.
 
 `get_my_context()` is the one call that returns the caller's roles, and `AuthProvider` caches it.
+
+## Screens and who reaches them
+
+| Route | Who | Holds |
+|---|---|---|
+| `/admin` | platform admin only | organizations, and every account on the platform |
+| `/:orgSlug/admin` | platform admin + that org's managers | dashboard, users, campaigns, settings |
+| `/:orgSlug/home` | anyone with the link | request approval, then pick addresses and work them |
+| `/m/:campaignId` | managers | the campaign console, reached from the campaigns tab |
+
+`/:orgSlug/home` is the one link an organization ever shares. It resolves to whichever campaign is
+currently published, so it survives from one holiday to the next; `/c/:slug` still redirects there.
+Static routes are declared before `/:orgSlug/…` so they always win, and reserved slugs are rejected by
+a CHECK constraint and by the slug trigger.
+
+An organization may have **one published campaign at a time**, enforced by a partial unique index
+rather than by the UI, so a second publish fails loudly instead of silently splitting volunteers.
+
+Account actions that need the service-role key (set a password, change an email, delete an account)
+live in the `admin-users` Edge Function, never in the browser. It re-checks the caller: a platform
+admin may act on anyone, an organization manager only on managers of their own organization, and
+nobody may delete themselves. Deploy it with `npx supabase functions deploy admin-users --use-api`
+(`--use-api` avoids Docker, which cannot mount this repo).
+
+`UNDELIVERABLE` is not a failure state to clean up automatically. A volunteer who could not hand over
+a basket freezes that address: it stays assigned to them and never returns to the pool, so nobody
+repeats the trip. Only a manager decides, through `resolve_undeliverable`, whether it goes back to the
+pool or is cancelled.
 
 ## Frontend structure
 
