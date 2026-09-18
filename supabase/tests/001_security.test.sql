@@ -2,7 +2,7 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(52);
+select plan(54);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -315,6 +315,19 @@ select tests.logout();
 
 select is((select count(*) from public.deliveries where campaign_id = :camp_a and status = 'AVAILABLE'), 3::bigint,
   'revocation released undelivered baskets (d002, d003 + d005) back to AVAILABLE');
+
+-- ---------------------------------------------------------------------------
+-- 8. Deleting a campaign with deliveries must not trip the audit foreign key
+-- ---------------------------------------------------------------------------
+select tests.login(:manager_a);
+
+select lives_ok(
+  $$ delete from public.campaigns where id = '00000000-0000-0000-0000-00000000c001' $$,
+  'manager A: can delete a campaign that still has deliveries');
+select is((select count(*) from public.deliveries where campaign_id = :camp_a), 0::bigint,
+  'deleting the campaign removed its deliveries');
+
+select tests.logout();
 
 select * from finish();
 rollback;
