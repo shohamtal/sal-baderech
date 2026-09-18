@@ -21,6 +21,12 @@ interface OrgCtx {
   /** Crumbs above the organization, for nested screens to extend. */
   crumbs: Crumb[];
 }
+const SECTION: Record<string, string> = {
+  users: 'משתמשים',
+  campaigns: 'קמפיינים',
+  settings: 'הגדרות',
+};
+
 const Ctx = createContext<OrgCtx | null>(null);
 export function useOrg(): OrgCtx {
   const v = useContext(Ctx);
@@ -59,26 +65,32 @@ export default function OrgArea() {
     ? [{ label: 'הפלטפורמה', to: '/admin' }, { label: data.name, to: base }]
     : [{ label: data.name, to: base }];
 
+  // A campaign renders its own trail and tabs, one level deeper.
   const insideCampaign = /\/campaigns\/[^/]+/.test(location.pathname);
+  const last = location.pathname.split('/').filter(Boolean).pop() ?? '';
+  const section = SECTION[last] ?? 'משתמשים';
 
   return (
     <Ctx.Provider value={{ org: data, reload, base, crumbs }}>
       <AppShell title={data.name} wide>
         {!insideCampaign && (
-          <TabBar
-            tabs={[
-              { to: `${base}/users`, label: 'משתמשים' },
-              { to: `${base}/campaigns`, label: 'קמפיינים', end: true },
-              { to: `${base}/settings`, label: 'הגדרות' },
-            ]}
-          />
+          <>
+            <Breadcrumbs items={[...crumbs, { label: section }]} />
+            <TabBar
+              tabs={[
+                { to: `${base}/users`, label: 'משתמשים' },
+                { to: `${base}/campaigns`, label: 'קמפיינים', end: true },
+                { to: `${base}/settings`, label: 'הגדרות' },
+              ]}
+            />
+          </>
         )}
         <Routes>
           <Route index element={<Navigate to="users" replace />} />
-          <Route path="users" element={<OrgPage crumb="משתמשים"><OrgUsersTab /></OrgPage>} />
-          <Route path="campaigns" element={<OrgPage crumb="קמפיינים"><OrgCampaignsTab /></OrgPage>} />
+          <Route path="users" element={<OrgUsersTab />} />
+          <Route path="campaigns" element={<OrgCampaignsTab />} />
           <Route path="campaigns/:campaignSlug/*" element={<CampaignArea />} />
-          <Route path="settings" element={<OrgPage crumb="הגדרות"><OrgSettingsTab /></OrgPage>} />
+          <Route path="settings" element={<OrgSettingsTab />} />
           {/* The organization area used to live under /admin; keep those links working. */}
           <Route path="admin" element={<Navigate to="../users" replace />} />
           <Route path="admin/*" element={<Navigate to="../users" replace />} />
@@ -89,12 +101,3 @@ export default function OrgArea() {
   );
 }
 
-function OrgPage({ crumb, children }: { crumb: string; children: React.ReactNode }) {
-  const { crumbs } = useOrg();
-  return (
-    <>
-      <Breadcrumbs items={[...crumbs, { label: crumb }]} />
-      {children}
-    </>
-  );
-}

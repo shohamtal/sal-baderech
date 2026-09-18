@@ -1,14 +1,20 @@
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { AppShell, TabBar } from '@/components/Layout';
-import type { ReactNode } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import OrganizationsTab from './OrganizationsTab';
 import PlatformUsersTab from './PlatformUsersTab';
 
+const SECTION: Record<string, string> = { users: 'משתמשים' };
+
 /** Platform administration. Reachable only by a platform admin (see RequireAuth). */
 export default function PlatformAdmin() {
+  const { pathname } = useLocation();
+  const last = pathname.split('/').filter(Boolean).pop() ?? '';
+  const section = SECTION[last] ?? 'ארגונים';
+
   return (
     <AppShell title="ניהול הפלטפורמה" wide>
+      <Breadcrumbs items={[{ label: 'הפלטפורמה', to: '/admin' }, { label: section }]} />
       <TabBar
         tabs={[
           { to: '/admin', label: 'ארגונים', end: true },
@@ -16,18 +22,9 @@ export default function PlatformAdmin() {
         ]}
       />
       <Routes>
-        <Route index element={<Page crumb="ארגונים"><OrganizationsTab /></Page>} />
-        <Route path="users" element={<Page crumb="משתמשים"><PlatformUsersTab /></Page>} />
+        <Route index element={<OrganizationsTab />} />
+        <Route path="users" element={<PlatformUsersTab />} />
       </Routes>
     </AppShell>
-  );
-}
-
-function Page({ crumb, children }: { crumb: string; children: ReactNode }) {
-  return (
-    <>
-      <Breadcrumbs items={[{ label: 'הפלטפורמה', to: '/admin' }, { label: crumb }]} />
-      {children}
-    </>
   );
 }
