@@ -1,10 +1,11 @@
 export type CampaignStatus = 'DRAFT' | 'PUBLISHED' | 'ENDED';
 export type VolunteerStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED';
-export type DeliveryStatus = 'AVAILABLE' | 'RESERVED' | 'IN_PROGRESS' | 'DELIVERED' | 'CANCELLED';
+export type DeliveryStatus = 'AVAILABLE' | 'RESERVED' | 'IN_PROGRESS' | 'DELIVERED' | 'UNDELIVERABLE' | 'CANCELLED';
 export type CorrectionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface Organization {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   city: string | null;
@@ -86,6 +87,8 @@ export interface Delivery {
   started_at: string | null;
   delivered_at: string | null;
   delivered_by: string | null;
+  undeliverable_reason: string | null;
+  undeliverable_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -149,12 +152,63 @@ export interface MyContext {
   volunteer?: { id: string; full_name: string; phone: string } | null;
 }
 
+export interface PlatformUser {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  phone: string | null;
+  is_platform_admin: boolean;
+  is_anonymous: boolean;
+  volunteer_id: string | null;
+  managed_orgs: { id: string; name: string; slug: string }[];
+  campaigns: { campaign: string; status: VolunteerStatus }[];
+  created_at: string;
+  last_sign_in_at: string | null;
+}
+
+export interface PendingInvite {
+  email: string;
+  kind: 'PLATFORM_ADMIN' | 'ORGANIZATION_MANAGER';
+  organization_name: string | null;
+  organization_id: string | null;
+}
+
+export interface OrgUser {
+  user_id: string | null;
+  email: string | null;
+  full_name: string | null;
+  phone: string | null;
+  role: 'ORGANIZATION_MANAGER' | 'VOLUNTEER';
+  volunteer_id: string | null;
+  campaign_volunteer_id: string | null;
+  campaign_id: string | null;
+  campaign_name: string | null;
+  volunteer_status: VolunteerStatus | null;
+  claimed: number;
+  delivered: number;
+  created_at: string;
+}
+
+export interface OrgHome {
+  organization: { id: string; name: string; slug: string; description: string | null; city: string | null; contact_name: string | null; contact_phone: string | null };
+  campaign: { id: string; name: string; description: string | null; city: string | null } | null;
+  my_status: VolunteerStatus | null;
+  my_name: string | null;
+  my_phone: string | null;
+}
+
+export interface OrgDashboard {
+  campaign: { id: string; name: string; public_slug: string } | null;
+  stats?: CampaignStats;
+}
+
 export interface CampaignStats {
   total: number;
   available: number;
   reserved: number;
   in_progress: number;
   delivered: number;
+  undeliverable: number;
   cancelled: number;
   missing_coords: number;
   volunteers_approved: number;

@@ -88,6 +88,13 @@ export default function DeliveriesTab() {
     reload();
   }
 
+  async function resolve(d: Row, action: 'RETRY' | 'CANCEL') {
+    setError(null);
+    const { error } = await supabase.rpc('resolve_undeliverable', { p_delivery_id: d.id, p_action: action });
+    if (error) return setError(errorMessage(error));
+    reload();
+  }
+
   async function remove(d: Row) {
     if (!confirm(`למחוק את המשלוח ל${fullName(d)} (${d.street} ${d.house_number})? הפעולה אינה הפיכה.`)) return;
     const { error } = await supabase.from('deliveries').delete().eq('id', d.id);
@@ -165,6 +172,12 @@ export default function DeliveriesTab() {
                   {d.household_size != null && ` · ${d.household_size} נפשות`}
                 </div>
                 {d.notes && <div className="text-sm text-amber-800">📝 {d.notes}</div>}
+                {d.status === 'UNDELIVERABLE' && (
+                  <div className="mt-1 rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-900">
+                    לא נמסר{d.undeliverable_reason ? `: ${d.undeliverable_reason}` : ''}
+                    {d.volunteers && ` · דווח על ידי ${d.volunteers.full_name}`}
+                  </div>
+                )}
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   {d.latitude == null && <span className="rounded bg-slate-100 px-1.5">ללא מיקום</span>}
                   {d.volunteers && <span>מתנדב: {d.volunteers.full_name}</span>}
@@ -175,6 +188,12 @@ export default function DeliveriesTab() {
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button size="sm" variant="secondary" onClick={() => setEditing(d)}>עריכה</Button>
+              {d.status === 'UNDELIVERABLE' && (
+                <>
+                  <Button size="sm" variant="success" onClick={() => resolve(d, 'RETRY')}>החזרה למאגר</Button>
+                  <Button size="sm" variant="secondary" onClick={() => { if (confirm('לבטל את המשלוח הזה?')) resolve(d, 'CANCEL'); }}>ביטול המשלוח</Button>
+                </>
+              )}
               {(d.status === 'RESERVED' || d.status === 'IN_PROGRESS' || d.status === 'DELIVERED') && (
                 <Button size="sm" variant="secondary" onClick={() => { if (confirm('להחזיר את המשלוח למאגר הפנויים?')) setDeliveryStatus(d, 'AVAILABLE'); }}>החזרה לפנוי</Button>
               )}

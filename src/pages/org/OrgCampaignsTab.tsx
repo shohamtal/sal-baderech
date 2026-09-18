@@ -1,39 +1,33 @@
-import { useAuth } from '@/auth/AuthProvider';
-import { AppShell } from '@/components/Layout';
 import { CampaignStatusBadge } from '@/components/StatusBadge';
 import { Alert, Button, Card, EmptyState, Field, Input, Modal, PageSpinner, Textarea } from '@/components/ui';
 import { errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
-import type { Campaign, Organization } from '@/lib/types';
+import type { Campaign } from '@/lib/types';
 import { useAsync } from '@/lib/useAsync';
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useOrg } from './OrgAdmin';
 
-export default function OrgCampaigns() {
-  const { orgId = '' } = useParams();
-  const { ctx } = useAuth();
+export default function OrgCampaignsTab() {
+  const { org } = useOrg();
+  const orgId = org.id;
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { data, loading, error, reload } = useAsync(async () => {
-    const [{ data: org, error: e1 }, { data: campaigns, error: e2 }] = await Promise.all([
-      supabase.from('organizations').select('*').eq('id', orgId).maybeSingle(),
-      supabase.from('campaigns').select('*').eq('organization_id', orgId).order('created_at', { ascending: false }),
-    ]);
-    if (e1) throw e1;
-    if (e2) throw e2;
-    return { org: org as Organization | null, campaigns: campaigns as Campaign[] };
+    const { data: campaigns, error } = await supabase
+      .from('campaigns').select('*').eq('organization_id', orgId).order('created_at', { ascending: false });
+    if (error) throw error;
+    return { campaigns: campaigns as Campaign[] };
   }, [orgId]);
 
-  const backTo = ctx?.is_platform_admin ? '/admin' : ctx?.manager_org_ids && ctx.manager_org_ids.length > 1 ? '/org' : undefined;
-
   return (
-    <AppShell title={data?.org?.name ?? 'ארגון'} back={backTo}>
+    <>
       {loading && <PageSpinner />}
       {error && <Alert kind="error">{errorMessage(error)}</Alert>}
-      {data && !data.org && <EmptyState title="הארגון לא נמצא" />}
-      {data?.org && (
+      {data && (
         <>
-          {!data.org.active && <Alert kind="warning" className="mb-4">הארגון אינו פעיל. קישורי הקמפיינים לא יעבדו.</Alert>}
+          {!org.active && <Alert kind="warning" className="mb-4">הארגון אינו פעיל. קישורי הקמפיינים לא יעבדו.</Alert>}
+          <Alert kind="info" className="mb-4">אפשר לפרסם קמפיין אחד בכל זמן נתון. כדי לפרסם קמפיין חדש יש לסיים את הנוכחי.</Alert>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold">קמפיינים</h2>
             <Button size="sm" onClick={() => setOpen(true)}>+ קמפיין חדש</Button>
@@ -52,10 +46,10 @@ export default function OrgCampaigns() {
               </Link>
             ))}
           </div>
-          <NewCampaignModal open={open} onClose={() => setOpen(false)} orgId={orgId} defaultCity={data.org.city} onCreated={(id) => { reload(); navigate(`/m/${id}`); }} />
+          <NewCampaignModal open={open} onClose={() => setOpen(false)} orgId={orgId} defaultCity={org.city} onCreated={(id) => { reload(); navigate(`/m/${id}`); }} />
         </>
       )}
-    </AppShell>
+    </>
   );
 }
 

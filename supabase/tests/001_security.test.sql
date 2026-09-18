@@ -2,7 +2,7 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(58);
+select plan(69);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -354,7 +354,79 @@ select tests.logout();
 update public.campaigns set status = 'PUBLISHED' where id = :camp_a;
 
 -- ---------------------------------------------------------------------------
--- 9. Deleting a campaign with deliveries must not trip the audit foreign key
+-- 9. One published campaign per organization
+-- ---------------------------------------------------------------------------
+select throws_ok(
+  format($$ insert into public.campaigns (organization_id, name, status, public_slug)
+            values (%L, 'Second Published', 'PUBLISHED', 'slug-d') $$, :org_a),
+  '23505', null,
+  'a second PUBLISHED campaign in the same organization is rejected');
+
+select lives_ok(
+  format($$ insert into public.campaigns (organization_id, name, status, public_slug)
+            values (%L, 'A Draft', 'DRAFT', 'slug-e') $$, :org_a),
+  'another DRAFT campaign in the same organization is fine');
+
+-- ---------------------------------------------------------------------------
+-- 10. Directories are scoped to the caller's role
+-- ---------------------------------------------------------------------------
+select tests.login(:manager_a);
+select throws_ok(
+  $$ select * from public.admin_list_users() $$,
+  '42501', 'FORBIDDEN',
+  'organization manager cannot list every user on the platform');
+select ok((select count(*) from public.org_list_users(:org_a)) > 0,
+  'organization manager can list the users of their own organization');
+select throws_ok(
+  format($$ select * from public.org_list_users(%L) $$, :org_b),
+  '42501', 'FORBIDDEN',
+  'organization manager cannot list another organization''s users');
+select tests.logout();
+
+select tests.login(:admin);
+select ok((select count(*) from public.admin_list_users()) >= 5,
+  'platform admin can list every user on the platform');
+select tests.logout();
+
+-- ---------------------------------------------------------------------------
+-- 11. UNDELIVERABLE freezes an address instead of returning it to the pool
+-- ---------------------------------------------------------------------------
+select tests.login(:vol_2);
+select is(
+  (select status from public.mark_undeliverable('00000000-0000-0000-0000-00000000d004', 'nobody home')),
+  'UNDELIVERABLE'::public.delivery_status,
+  'vol2: can report a basket as undeliverable');
+select tests.logout();
+
+select tests.login(:vol_1);
+-- vol1 was revoked earlier, so re-approve to act as a second volunteer here.
+select tests.logout();
+select tests.login(:manager_a);
+select is((select status from public.set_volunteer_status(:'cv_vol1', 'APPROVED')),
+  'APPROVED'::public.volunteer_status, 'manager A: re-approves vol1 for the freeze test');
+select tests.logout();
+
+select tests.login(:vol_1);
+select is(
+  (select count(*) from public.get_available_deliveries(:camp_a)
+    where id = '00000000-0000-0000-0000-00000000d004'), 0::bigint,
+  'an undeliverable address is not offered to another volunteer');
+select throws_ok(
+  $$ select * from public.claim_deliveries('00000000-0000-0000-0000-00000000c001',
+       array['00000000-0000-0000-0000-00000000d004']::uuid[]) $$,
+  'P0001', 'CLAIM_CONFLICT',
+  'an undeliverable address cannot be claimed by another volunteer');
+select tests.logout();
+
+select tests.login(:manager_a);
+select is(
+  (select status from public.resolve_undeliverable('00000000-0000-0000-0000-00000000d004', 'RETRY')),
+  'AVAILABLE'::public.delivery_status,
+  'manager A: can return an undeliverable address to the pool');
+select tests.logout();
+
+-- ---------------------------------------------------------------------------
+-- 12. Deleting a campaign with deliveries must not trip the audit foreign key
 -- ---------------------------------------------------------------------------
 select tests.login(:manager_a);
 

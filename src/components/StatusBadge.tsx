@@ -7,6 +7,7 @@ export const deliveryStatusColor: Record<DeliveryStatus, string> = {
   RESERVED: 'blue',
   IN_PROGRESS: 'amber',
   DELIVERED: 'green',
+  UNDELIVERABLE: 'purple',
   CANCELLED: 'red',
 };
 
@@ -16,6 +17,7 @@ export const deliveryStatusHex: Record<DeliveryStatus, string> = {
   RESERVED: '#0284c7',
   IN_PROGRESS: '#d97706',
   DELIVERED: '#059669',
+  UNDELIVERABLE: '#7c3aed',
   CANCELLED: '#dc2626',
 };
 

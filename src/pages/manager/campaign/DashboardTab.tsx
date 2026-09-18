@@ -47,6 +47,7 @@ export default function DashboardTab() {
         <StatCard label="שמורים" value={data.reserved} tone="blue" />
         <StatCard label="בדרך" value={data.in_progress} tone="amber" />
         <StatCard label="נמסרו" value={data.delivered} tone="green" />
+        <StatCard label="לא נמסרו" value={data.undeliverable} tone={data.undeliverable ? 'red' : 'slate'} />
         <StatCard label="בוטלו" value={data.cancelled} tone="red" />
       </div>
 
@@ -64,6 +65,12 @@ export default function DashboardTab() {
       {data.volunteers_pending > 0 && (
         <Alert kind="warning">
           יש {data.volunteers_pending} מתנדבים שממתינים לאישור. <LinkButton to={`${base}/volunteers`} variant="ghost" size="sm">לאישור מתנדבים</LinkButton>
+        </Alert>
+      )}
+      {data.undeliverable > 0 && (
+        <Alert kind="warning">
+          {data.undeliverable} כתובות סומנו כ"לא נמסר" והוקפאו — הן לא ייתפסו על ידי מתנדב אחר עד שתחליטו.{' '}
+          <LinkButton to={`${base}/deliveries`} variant="ghost" size="sm">לטיפול</LinkButton>
         </Alert>
       )}
       {data.corrections_pending > 0 && (

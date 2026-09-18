@@ -1,44 +1,41 @@
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { PageSpinner } from '@/components/ui';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { lazy, Suspense } from 'react';
-import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 
-const CampaignLanding = lazy(() => import('@/pages/public/CampaignLanding'));
+const OrgHome = lazy(() => import('@/pages/volunteer/OrgHome'));
 const LoginPage = lazy(() => import('@/pages/public/LoginPage'));
 const HomePage = lazy(() => import('@/pages/public/HomePage'));
-const VolunteerCampaigns = lazy(() => import('@/pages/volunteer/VolunteerCampaigns'));
-const VolunteerCampaign = lazy(() => import('@/pages/volunteer/VolunteerCampaign'));
-const RequestCluster = lazy(() => import('@/pages/volunteer/RequestCluster'));
-const AdminOrganizations = lazy(() => import('@/pages/admin/AdminOrganizations'));
-const AdminOrganization = lazy(() => import('@/pages/admin/AdminOrganization'));
-const OrgList = lazy(() => import('@/pages/manager/OrgList'));
-const OrgCampaigns = lazy(() => import('@/pages/manager/OrgCampaigns'));
+const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
+const OrgAdmin = lazy(() => import('@/pages/org/OrgAdmin'));
 const CampaignManage = lazy(() => import('@/pages/manager/CampaignManage'));
+const LegacyCampaignLink = lazy(() => import('@/pages/public/LegacyCampaignLink'));
 
 function ConfigError() {
   return (
     <div className="mx-auto max-w-lg p-6">
       <h1 className="text-xl font-bold">חסרה הגדרת Supabase</h1>
       <p className="mt-2 text-slate-600">
-        יש להגדיר את משתני הסביבה <code>VITE_SUPABASE_URL</code> ו-<code>VITE_SUPABASE_ANON_KEY</code> (ראו קובץ .env.example).
+        יש להגדיר את משתני הסביבה <code>VITE_SUPABASE_URL</code> ו-<code>VITE_SUPABASE_ANON_KEY</code> (ראו .env.example).
       </p>
     </div>
   );
 }
 
-function RequireAuth({ children, role }: { children: React.ReactNode; role?: 'admin' | 'manager' | 'volunteer' }) {
+/**
+ * UX-only gate. Every rule here is enforced again by RLS, so bypassing it
+ * yields empty screens rather than data.
+ */
+function RequireAuth({ children, role }: { children: ReactNode; role?: 'admin' | 'manager' }) {
   const { session, loading, ctx } = useAuth();
   if (loading) return <PageSpinner />;
   if (!session) return <Navigate to="/login" replace />;
   if (role === 'admin' && !ctx?.is_platform_admin) return <Navigate to="/" replace />;
-  if (role === 'manager' && !ctx?.is_platform_admin && !ctx?.manager_org_ids?.length) return <Navigate to="/" replace />;
+  if (role === 'manager' && !ctx?.is_platform_admin && !ctx?.manager_org_ids?.length) {
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
-}
-
-function LegacyCampaignRedirect() {
-  const { slug } = useParams();
-  return <Navigate to={`/c/${slug}`} replace />;
 }
 
 export default function App() {
@@ -50,24 +47,19 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
-            {/* Public campaign URL: registration only — never authorization. */}
-            <Route path="/c/:slug" element={<CampaignLanding />} />
-            <Route path="/campaign/:slug" element={<LegacyCampaignRedirect />} />
 
-            {/* Volunteer */}
-            <Route path="/v" element={<RequireAuth><VolunteerCampaigns /></RequireAuth>} />
-            <Route path="/v/:campaignId" element={<RequireAuth><VolunteerCampaign /></RequireAuth>} />
-            <Route path="/v/:campaignId/request" element={<RequireAuth><RequestCluster /></RequireAuth>} />
+            {/* Platform administration */}
+            <Route path="/admin/*" element={<RequireAuth role="admin"><PlatformAdmin /></RequireAuth>} />
 
-            {/* Platform admin */}
-            <Route path="/admin" element={<RequireAuth role="admin"><AdminOrganizations /></RequireAuth>} />
-            <Route path="/admin/org/:orgId" element={<RequireAuth role="admin"><AdminOrganization /></RequireAuth>} />
-
-            {/* Organization manager */}
-            <Route path="/org" element={<RequireAuth role="manager"><OrgList /></RequireAuth>} />
-            <Route path="/org/:orgId" element={<RequireAuth role="manager"><OrgCampaigns /></RequireAuth>} />
+            {/* Campaign console, reached from an organization's campaigns tab */}
             <Route path="/m/:campaignId/*" element={<RequireAuth role="manager"><CampaignManage /></RequireAuth>} />
 
+            {/* Organization-scoped. Static routes above always win over these. */}
+            <Route path="/:orgSlug/home" element={<OrgHome />} />
+            <Route path="/:orgSlug/admin/*" element={<RequireAuth role="manager"><OrgAdmin /></RequireAuth>} />
+
+            <Route path="/c/:slug" element={<LegacyCampaignLink />} />
+            <Route path="/campaign/:slug" element={<LegacyCampaignLink />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
