@@ -129,8 +129,15 @@ function NewOrgModal({ open, onClose, onCreated }: { open: boolean; onClose: () 
         <Field label="עיר"><Input value={v.city} onChange={set('city')} /></Field>
         <Field label="איש קשר"><Input value={v.contact_name} onChange={set('contact_name')} /></Field>
         <Field label="טלפון"><Input type="tel" dir="ltr" value={v.contact_phone} onChange={set('contact_phone')} /></Field>
-        <Field label="אימייל"><Input type="email" dir="ltr" value={v.contact_email} onChange={set('contact_email')} /></Field>
-        <Field label="אימייל מנהל הארגון (אופציונלי)" hint="המנהל יירשם עם אימייל זה בדף הכניסה"><Input type="email" dir="ltr" value={v.manager_email} onChange={set('manager_email')} /></Field>
+        <Field label="אימייל ליצירת קשר" hint="פרטי קשר בלבד — אינו מקנה הרשאות">
+          <Input type="email" dir="ltr" value={v.contact_email} onChange={set('contact_email')} />
+        </Field>
+        <Field
+          label="אימייל מנהל הארגון"
+          hint="זה השדה שמקנה הרשאת ניהול. המנהל נרשם עם אימייל זה בדף הכניסה."
+        >
+          <Input type="email" dir="ltr" value={v.manager_email} onChange={set('manager_email')} />
+        </Field>
         {error && <Alert kind="error">{error}</Alert>}
         <Button type="submit" className="w-full" loading={busy}>יצירה</Button>
       </form>
