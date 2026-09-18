@@ -2,7 +2,7 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(54);
+select plan(58);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -63,8 +63,8 @@ insert into public.organization_managers (organization_id, user_id, email) value
   (:org_a, :manager_a, 'manager-a@test.local'),
   (:org_b, :manager_b, 'manager-b@test.local');
 insert into public.campaigns (id, organization_id, name, status, public_slug) values
-  (:camp_a, :org_a, 'Campaign A', 'OPEN', 'slug-a'),
-  (:camp_b, :org_b, 'Campaign B', 'OPEN', 'slug-b');
+  (:camp_a, :org_a, 'Campaign A', 'PUBLISHED', 'slug-a'),
+  (:camp_b, :org_b, 'Campaign B', 'PUBLISHED', 'slug-b');
 insert into public.deliveries (id, campaign_id, first_name, last_name, street, house_number, apartment, building_code, neighborhood) values
   ('00000000-0000-0000-0000-00000000d001', :camp_a, 'Cohen', 'Family', 'Herzl', '10', '3', '1234', 'Old Town'),
   ('00000000-0000-0000-0000-00000000d002', :camp_a, 'Levi', 'Family', 'Herzl', '12', '7', null, 'Old Town'),
@@ -317,7 +317,44 @@ select is((select count(*) from public.deliveries where campaign_id = :camp_a an
   'revocation released undelivered baskets (d002, d003 + d005) back to AVAILABLE');
 
 -- ---------------------------------------------------------------------------
--- 8. Deleting a campaign with deliveries must not trip the audit foreign key
+-- 8. Campaign lifecycle: DRAFT is not public, ENDED is read-only
+-- ---------------------------------------------------------------------------
+insert into public.campaigns (id, organization_id, name, status, public_slug)
+values ('00000000-0000-0000-0000-00000000c003', :org_a, 'Campaign C', 'DRAFT', 'slug-c');
+
+select tests.login_anon();
+select is((select count(*) from public.get_public_campaign('slug-c')), 0::bigint,
+  'DRAFT campaign: the public link does not resolve at all');
+select tests.logout();
+
+update public.campaigns set status = 'ENDED' where id = '00000000-0000-0000-0000-00000000c003';
+
+select tests.login_anon();
+select is((select campaign_name from public.get_public_campaign('slug-c')), 'Campaign C',
+  'ENDED campaign: still readable, so an old link explains itself');
+select tests.logout();
+
+select tests.login(:vol_2);
+select throws_ok(
+  $$ select public.register_volunteer('slug-c', 'Late Volunteer', '0501234567') $$,
+  'P0001', 'CAMPAIGN_NOT_OPEN',
+  'ENDED campaign: registration is refused');
+select tests.logout();
+
+-- Ending a campaign must also stop claiming, for a volunteer already approved.
+update public.campaigns set status = 'ENDED' where id = :camp_a;
+select tests.login(:vol_2);
+select throws_ok(
+  $$ select * from public.claim_deliveries('00000000-0000-0000-0000-00000000c001',
+       array['00000000-0000-0000-0000-00000000d002']::uuid[]) $$,
+  'P0001', 'CAMPAIGN_NOT_OPEN',
+  'ENDED campaign: an approved volunteer can no longer claim');
+select tests.logout();
+
+update public.campaigns set status = 'PUBLISHED' where id = :camp_a;
+
+-- ---------------------------------------------------------------------------
+-- 9. Deleting a campaign with deliveries must not trip the audit foreign key
 -- ---------------------------------------------------------------------------
 select tests.login(:manager_a);
 

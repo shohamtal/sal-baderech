@@ -61,6 +61,8 @@ Migrations apply in order, and the split between them is deliberate:
 | `0002_rls.sql` | `app.*` authorization predicates, audit triggers, every RLS policy |
 | `0003_functions.sql` | the `public.*` RPCs that are the real write API |
 | `0004_import_fields.sql` | fields real recipient lists need, and the RPCs that touch them |
+| `0005_audit_cascade_fix.sql` | lets a campaign with deliveries actually be deleted |
+| `0006_campaign_status.sql` | the three-state campaign lifecycle |
 
 `app.is_approved_volunteer(campaign_id)` is the gate for all sensitive data. `app.can_manage_org` and
 `app.can_manage_campaign` handle tenant isolation. They are `SECURITY DEFINER` and `STABLE` so policies
@@ -98,6 +100,19 @@ rows the RPC already logged. If you add an RPC that writes to `deliveries`, call
 `supabase/tests/001_security.test.sql` and bump the `select plan(N)` count. That file is the security
 spec; it asserts pending/rejected/revoked volunteers get zero rows, cross-organization isolation, claim
 conflicts, and the correction audit trail.
+
+A campaign has exactly three states, and they gate real behaviour rather than being labels:
+
+| State | Public link | Register | Claim |
+|---|---|---|---|
+| `DRAFT` | does not resolve | no | no |
+| `PUBLISHED` | resolves | yes | yes |
+| `ENDED` | resolves, read-only | no | no |
+
+Enforced in SQL, not the UI: `get_public_campaign` hides `DRAFT`, and `register_volunteer`,
+`claim_deliveries` and `get_available_deliveries` each require `PUBLISHED`. An earlier five-state enum
+drew distinctions nothing acted on, so do not reintroduce them. Note `IN_PROGRESS` still exists on
+`delivery_status` and is unrelated.
 
 ## Authentication
 

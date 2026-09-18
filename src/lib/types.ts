@@ -1,4 +1,4 @@
-export type CampaignStatus = 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED';
+export type CampaignStatus = 'DRAFT' | 'PUBLISHED' | 'ENDED';
 export type VolunteerStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED';
 export type DeliveryStatus = 'AVAILABLE' | 'RESERVED' | 'IN_PROGRESS' | 'DELIVERED' | 'CANCELLED';
 export type CorrectionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';

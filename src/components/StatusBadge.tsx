@@ -29,7 +29,7 @@ export function VolunteerStatusBadge({ status }: { status: VolunteerStatus }) {
 }
 
 export function CampaignStatusBadge({ status }: { status: CampaignStatus }) {
-  const color: Record<CampaignStatus, string> = { DRAFT: 'slate', OPEN: 'green', IN_PROGRESS: 'blue', COMPLETED: 'purple', ARCHIVED: 'slate' };
+  const color: Record<CampaignStatus, string> = { DRAFT: 'slate', PUBLISHED: 'green', ENDED: 'purple' };
   return <Badge color={color[status]}>{campaignStatusLabel[status]}</Badge>;
 }
 

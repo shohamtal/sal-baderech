@@ -46,7 +46,7 @@ describe.skipIf(!FILE || !URL || !KEY)('real spreadsheet import', () => {
       .insert({
         organization_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         name: `ייבוא אמיתי ${Date.now()}`,
-        status: 'OPEN',
+        status: 'PUBLISHED',
       })
       .select('id')
       .single();
