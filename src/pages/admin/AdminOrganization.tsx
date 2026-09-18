@@ -58,7 +58,8 @@ export default function AdminOrganization() {
         <OrgForm org={org} onSaved={reload} />
         <div className="space-y-4">
           <Card>
-            <h2 className="mb-2 font-bold">מנהלי הארגון</h2>
+            <h2 className="mb-1 font-bold">מנהלי הארגון</h2>
+            <p className="mb-2 text-sm text-slate-500">רק מי שמופיע כאן יכול להיכנס ולנהל את הארגון.</p>
             <ul className="mb-3 space-y-2 text-sm">
               {managers.length === 0 && <li className="text-slate-500">אין מנהלים עדיין.</li>}
               {managers.map((m) => (
@@ -132,7 +133,12 @@ function OrgForm({ org, onSaved }: { org: Organization; onSaved: () => void }) {
           <Field label="איש קשר"><Input value={v.contact_name} onChange={set('contact_name')} /></Field>
           <Field label="טלפון"><Input type="tel" dir="ltr" value={v.contact_phone} onChange={set('contact_phone')} /></Field>
         </div>
-        <Field label="אימייל"><Input type="email" dir="ltr" value={v.contact_email} onChange={set('contact_email')} /></Field>
+        <Field
+          label="אימייל ליצירת קשר"
+          hint="פרטי קשר בלבד. כדי לתת הרשאת ניהול יש להוסיף את האימייל ברשימת מנהלי הארגון."
+        >
+          <Input type="email" dir="ltr" value={v.contact_email} onChange={set('contact_email')} />
+        </Field>
         {error && <Alert kind="error">{error}</Alert>}
         {saved && <Alert kind="success">נשמר</Alert>}
         <Button type="submit" className="w-full" loading={busy}>שמירה</Button>
