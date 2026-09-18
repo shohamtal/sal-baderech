@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import type { Correction, DeliveryField } from '@/lib/types';
 import { useAsync } from '@/lib/useAsync';
 import { useState } from 'react';
-import { useCampaign } from '../CampaignManage';
+import { useCampaign } from './CampaignArea';
 
 export default function CorrectionsTab() {
   const { campaign } = useCampaign();

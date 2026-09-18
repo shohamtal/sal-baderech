@@ -8,8 +8,7 @@ const OrgHome = lazy(() => import('@/pages/volunteer/OrgHome'));
 const LoginPage = lazy(() => import('@/pages/public/LoginPage'));
 const HomePage = lazy(() => import('@/pages/public/HomePage'));
 const PlatformAdmin = lazy(() => import('@/pages/admin/PlatformAdmin'));
-const OrgAdmin = lazy(() => import('@/pages/org/OrgAdmin'));
-const CampaignManage = lazy(() => import('@/pages/manager/CampaignManage'));
+const OrgArea = lazy(() => import('@/pages/org/OrgArea'));
 const LegacyCampaignLink = lazy(() => import('@/pages/public/LegacyCampaignLink'));
 
 function ConfigError() {
@@ -51,15 +50,17 @@ export default function App() {
             {/* Platform administration */}
             <Route path="/admin/*" element={<RequireAuth role="admin"><PlatformAdmin /></RequireAuth>} />
 
-            {/* Campaign console, reached from an organization's campaigns tab */}
-            <Route path="/m/:campaignId/*" element={<RequireAuth role="manager"><CampaignManage /></RequireAuth>} />
-
-            {/* Organization-scoped. Static routes above always win over these. */}
-            <Route path="/:orgSlug/home" element={<OrgHome />} />
-            <Route path="/:orgSlug/admin/*" element={<RequireAuth role="manager"><OrgAdmin /></RequireAuth>} />
-
+            {/* Links shared before organization URLs existed */}
             <Route path="/c/:slug" element={<LegacyCampaignLink />} />
             <Route path="/campaign/:slug" element={<LegacyCampaignLink />} />
+
+            {/*
+              Everything an organization owns lives under /:orgSlug. The volunteer
+              page is declared first so it is never swallowed by the admin splat,
+              and reserved slugs are rejected by the database.
+            */}
+            <Route path="/:orgSlug/home" element={<OrgHome />} />
+            <Route path="/:orgSlug/*" element={<RequireAuth role="manager"><OrgArea /></RequireAuth>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

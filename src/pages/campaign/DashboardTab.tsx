@@ -3,10 +3,10 @@ import { errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
 import type { CampaignStats } from '@/lib/types';
 import { useAsync } from '@/lib/useAsync';
-import { useCampaign } from '../CampaignManage';
+import { useCampaign } from './CampaignArea';
 
 export default function DashboardTab() {
-  const { campaign } = useCampaign();
+  const { campaign, org, base } = useCampaign();
   const { data, loading, error, reload } = useAsync(async () => {
     const { data, error } = await supabase.rpc('campaign_stats', { p_campaign_id: campaign.id });
     if (error) throw error;
@@ -19,7 +19,7 @@ export default function DashboardTab() {
 
   const effective = data.total - data.cancelled;
   const pct = effective ? Math.round((data.delivered / effective) * 100) : 0;
-  const base = `/m/${campaign.id}`;
+  const orgBase = `/${encodeURIComponent(org.slug)}`;
 
   return (
     <div className="space-y-4">
@@ -64,7 +64,8 @@ export default function DashboardTab() {
       )}
       {data.volunteers_pending > 0 && (
         <Alert kind="warning">
-          יש {data.volunteers_pending} מתנדבים שממתינים לאישור. <LinkButton to={`${base}/volunteers`} variant="ghost" size="sm">לאישור מתנדבים</LinkButton>
+          יש {data.volunteers_pending} מתנדבים שממתינים לאישור.{' '}
+          <LinkButton to={`${orgBase}/users`} variant="ghost" size="sm">לניהול המשתמשים בארגון</LinkButton>
         </Alert>
       )}
       {data.undeliverable > 0 && (
@@ -75,7 +76,7 @@ export default function DashboardTab() {
       )}
       {data.corrections_pending > 0 && (
         <Alert kind="warning">
-          יש {data.corrections_pending} בקשות תיקון ממתינות. <LinkButton to={`${base}/corrections`} variant="ghost" size="sm">לבדיקה</LinkButton>
+          יש {data.corrections_pending} בקשות תיקון ממתינות. <LinkButton to={`${base}/fix-suggestions`} variant="ghost" size="sm">לבדיקה</LinkButton>
         </Alert>
       )}
       {data.missing_coords > 0 && (

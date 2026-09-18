@@ -29,6 +29,8 @@ export interface OrganizationManager {
 export interface Campaign {
   id: string;
   organization_id: string;
+  /** Readable, unique within the organization; used in management URLs. */
+  slug: string;
   name: string;
   description: string | null;
   city: string | null;
@@ -197,10 +199,6 @@ export interface OrgHome {
   my_phone: string | null;
 }
 
-export interface OrgDashboard {
-  campaign: { id: string; name: string; public_slug: string } | null;
-  stats?: CampaignStats;
-}
 
 export interface CampaignStats {
   total: number;

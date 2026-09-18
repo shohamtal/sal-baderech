@@ -8,12 +8,12 @@ import type { Delivery, DeliveryStatus } from '@/lib/types';
 import { useAsync } from '@/lib/useAsync';
 import clsx from 'clsx';
 import { useState } from 'react';
-import { useCampaign } from '../CampaignManage';
+import { useCampaign } from './CampaignArea';
 
 const STATUSES: DeliveryStatus[] = ['AVAILABLE', 'RESERVED', 'IN_PROGRESS', 'DELIVERED', 'UNDELIVERABLE', 'CANCELLED'];
 
 export default function MapTab() {
-  const { campaign } = useCampaign();
+  const { campaign, base } = useCampaign();
   const [filter, setFilter] = useState<Set<DeliveryStatus>>(new Set(['AVAILABLE', 'RESERVED', 'IN_PROGRESS', 'DELIVERED', 'UNDELIVERABLE']));
   const { data, loading, error } = useAsync(async () => {
     const { data, error } = await supabase
@@ -33,7 +33,7 @@ export default function MapTab() {
 
   if (all.length === 0) {
     return <EmptyState title="אין עדיין משלוחים בקמפיין" description="ייבאו קובץ נמענים כדי לראות אותם על המפה."
-      action={<LinkButton to={`/m/${campaign.id}/import`} size="sm">לייבוא נמענים</LinkButton>} />;
+      action={<LinkButton to={`${base}/import`} size="sm">לייבוא נמענים</LinkButton>} />;
   }
 
   // A blank map is not an answer: say why it is blank and what to do about it.
@@ -42,7 +42,7 @@ export default function MapTab() {
       <EmptyState
         title="אף משלוח אינו ממופה עדיין"
         description={`לכל ${all.length} המשלוחים אין קואורדינטות, כי קובץ הייבוא לא כלל קווי אורך ורוחב. אפשר להשלים אותם אוטומטית מ-OpenStreetMap (כשנייה לכתובת), ואז המפה תתמלא.`}
-        action={<LinkButton to={`/m/${campaign.id}/deliveries`} size="md">להשלמת מיקומים</LinkButton>}
+        action={<LinkButton to={`${base}/deliveries`} size="md">להשלמת מיקומים</LinkButton>}
       />
     );
   }
@@ -86,7 +86,7 @@ export default function MapTab() {
       {missing > 0 && (
         <Alert kind="info">
           {missing} משלוחים ללא מיקום אינם מוצגים במפה.{' '}
-          <LinkButton to={`/m/${campaign.id}/deliveries`} variant="ghost" size="sm">להשלמת מיקומים</LinkButton>
+          <LinkButton to={`${base}/deliveries`} variant="ghost" size="sm">להשלמת מיקומים</LinkButton>
         </Alert>
       )}
     </div>

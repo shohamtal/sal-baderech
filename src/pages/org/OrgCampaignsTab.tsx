@@ -6,10 +6,10 @@ import type { Campaign } from '@/lib/types';
 import { useAsync } from '@/lib/useAsync';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useOrg } from './OrgAdmin';
+import { useOrg } from './OrgArea';
 
 export default function OrgCampaignsTab() {
-  const { org } = useOrg();
+  const { org, base } = useOrg();
   const orgId = org.id;
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -35,7 +35,7 @@ export default function OrgCampaignsTab() {
           {data.campaigns.length === 0 && <EmptyState title="אין קמפיינים עדיין" description="צרו קמפיין ראשון, למשל: פסח 2027." />}
           <div className="space-y-3">
             {data.campaigns.map((c) => (
-              <Link key={c.id} to={`/m/${c.id}`} className="block">
+              <Link key={c.id} to={`${base}/campaigns/${encodeURIComponent(c.slug)}/overview`} className="block">
                 <Card className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-lg font-bold">{c.name}</div>
@@ -46,14 +46,14 @@ export default function OrgCampaignsTab() {
               </Link>
             ))}
           </div>
-          <NewCampaignModal open={open} onClose={() => setOpen(false)} orgId={orgId} defaultCity={org.city} onCreated={(id) => { reload(); navigate(`/m/${id}`); }} />
+          <NewCampaignModal open={open} onClose={() => setOpen(false)} orgId={orgId} defaultCity={org.city} onCreated={(slug) => { reload(); navigate(`${base}/campaigns/${encodeURIComponent(slug)}/overview`); }} />
         </>
       )}
     </>
   );
 }
 
-function NewCampaignModal({ open, onClose, orgId, defaultCity, onCreated }: { open: boolean; onClose: () => void; orgId: string; defaultCity: string | null; onCreated: (id: string) => void }) {
+function NewCampaignModal({ open, onClose, orgId, defaultCity, onCreated }: { open: boolean; onClose: () => void; orgId: string; defaultCity: string | null; onCreated: (slug: string) => void }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [city, setCity] = useState(defaultCity ?? '');
@@ -67,11 +67,11 @@ function NewCampaignModal({ open, onClose, orgId, defaultCity, onCreated }: { op
     const { data, error } = await supabase
       .from('campaigns')
       .insert({ organization_id: orgId, name, description: description || null, city: city || null })
-      .select('id')
+      .select('slug')
       .single();
     setBusy(false);
     if (error) return setError(errorMessage(error));
-    onCreated(data.id);
+    onCreated(data.slug);
   }
 
   return (
