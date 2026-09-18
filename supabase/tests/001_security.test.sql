@@ -2,7 +2,7 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(69);
+select plan(73);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -426,7 +426,30 @@ select is(
 select tests.logout();
 
 -- ---------------------------------------------------------------------------
--- 12. Deleting a campaign with deliveries must not trip the audit foreign key
+-- 12. Readable slugs for organization and campaign URLs
+-- ---------------------------------------------------------------------------
+select is((select slug from public.organizations where id = :org_a), 'org-a',
+  'organization slug is derived from its name');
+
+insert into public.campaigns (id, organization_id, name, status, public_slug)
+values ('00000000-0000-0000-0000-00000000c010', :org_a, 'Pesach 2027', 'DRAFT', 'slug-f');
+select is((select slug from public.campaigns where id = '00000000-0000-0000-0000-00000000c010'),
+  'pesach-2027', 'campaign slug is derived from its name');
+
+-- Same name twice in one organization must still give two usable URLs.
+insert into public.campaigns (id, organization_id, name, status, public_slug)
+values ('00000000-0000-0000-0000-00000000c011', :org_a, 'Pesach 2027', 'DRAFT', 'slug-g');
+select is((select slug from public.campaigns where id = '00000000-0000-0000-0000-00000000c011'),
+  'pesach-2027-2', 'a duplicate campaign name gets a distinct slug');
+
+-- A slug equal to a tab name would shadow the tab.
+insert into public.campaigns (id, organization_id, name, status, public_slug)
+values ('00000000-0000-0000-0000-00000000c012', :org_a, 'settings', 'DRAFT', 'slug-h');
+select is((select slug from public.campaigns where id = '00000000-0000-0000-0000-00000000c012'),
+  'settings-campaign', 'a campaign named after a tab does not shadow that tab');
+
+-- ---------------------------------------------------------------------------
+-- 13. Deleting a campaign with deliveries must not trip the audit foreign key
 -- ---------------------------------------------------------------------------
 select tests.login(:manager_a);
 

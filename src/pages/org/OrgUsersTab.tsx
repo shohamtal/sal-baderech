@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import type { OrgUser, VolunteerStatus } from '@/lib/types';
 import { useAsync } from '@/lib/useAsync';
 import { useMemo, useState, type FormEvent } from 'react';
-import { useOrg } from './OrgAdmin';
+import { useOrg } from './OrgArea';
 
 /** Everyone attached to this organization: its managers and its volunteers. */
 export default function OrgUsersTab() {

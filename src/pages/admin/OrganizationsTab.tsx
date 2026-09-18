@@ -55,7 +55,7 @@ export default function OrganizationsTab() {
             {data.orgs.length === 0 && <EmptyState title="אין ארגונים" description="צרו את הארגון הראשון." />}
             <div className="space-y-2">
               {data.orgs.map((o) => (
-                <Link key={o.id} to={`/${encodeURIComponent(o.slug)}/admin`} className="block">
+                <Link key={o.id} to={`/${encodeURIComponent(o.slug)}`} className="block">
                   <Card className="flex items-center justify-between gap-3">
                     <div>
                       <div className="font-bold">{o.name}</div>

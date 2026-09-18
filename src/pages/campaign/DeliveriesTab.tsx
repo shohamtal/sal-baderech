@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import type { Delivery, DeliveryStatus } from '@/lib/types';
 import { useAsync } from '@/lib/useAsync';
 import { useMemo, useRef, useState, type FormEvent } from 'react';
-import { useCampaign } from '../CampaignManage';
+import { useCampaign } from './CampaignArea';
 
 type Row = Delivery & { volunteers: { full_name: string; phone: string } | null };
 

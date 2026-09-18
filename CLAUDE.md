@@ -131,12 +131,28 @@ Authentication and authorization are separate. Being signed in grants nothing by
 
 ## Screens and who reaches them
 
-| Route | Who | Holds |
-|---|---|---|
-| `/admin` | platform admin only | organizations, and every account on the platform |
-| `/:orgSlug/admin` | platform admin + that org's managers | dashboard, users, campaigns, settings |
-| `/:orgSlug/home` | anyone with the link | request approval, then pick addresses and work them |
-| `/m/:campaignId` | managers | the campaign console, reached from the campaigns tab |
+One hierarchy, reflected in the URLs and in the breadcrumbs on every screen:
+
+```
+/admin                                          platform admin only
+  /admin/users                                  every account on the platform
+/:orgSlug                                       organization (managers + platform admin)
+  /:orgSlug/users                               its managers and volunteers, approvals included
+  /:orgSlug/campaigns                           its campaigns
+  /:orgSlug/campaigns/:campaignSlug/<tab>       one campaign: overview, deliveries, map,
+                                                fix-suggestions, import, log, settings
+  /:orgSlug/settings                            organization details and the volunteer link
+/:orgSlug/home                                  volunteers (no login needed to ask)
+```
+
+Volunteers belong to the **organization**, not to a campaign, so approvals live at `/:orgSlug/users`
+and the campaign has no volunteers tab. `campaign_volunteers` is still per campaign in the database,
+because approval must be per campaign; the organization screen simply lists those memberships.
+
+Slugs are readable and generated from names (`app.slugify`), unique per scope, and stable across a
+rename so shared links keep working. Both slug triggers refuse names that would shadow a route, and
+CHECK constraints back that up. `campaigns.public_slug` is separate and stays opaque: it is the token
+in links shared before organization URLs existed.
 
 `/:orgSlug/home` is the one link an organization ever shares. It resolves to whichever campaign is
 currently published, so it survives from one holiday to the next; `/c/:slug` still redirects there.

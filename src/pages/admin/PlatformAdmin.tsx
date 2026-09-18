@@ -1,4 +1,6 @@
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { AppShell, TabBar } from '@/components/Layout';
+import type { ReactNode } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import OrganizationsTab from './OrganizationsTab';
 import PlatformUsersTab from './PlatformUsersTab';
@@ -14,9 +16,18 @@ export default function PlatformAdmin() {
         ]}
       />
       <Routes>
-        <Route index element={<OrganizationsTab />} />
-        <Route path="users" element={<PlatformUsersTab />} />
+        <Route index element={<Page crumb="ארגונים"><OrganizationsTab /></Page>} />
+        <Route path="users" element={<Page crumb="משתמשים"><PlatformUsersTab /></Page>} />
       </Routes>
     </AppShell>
+  );
+}
+
+function Page({ crumb, children }: { crumb: string; children: ReactNode }) {
+  return (
+    <>
+      <Breadcrumbs items={[{ label: 'הפלטפורמה', to: '/admin' }, { label: crumb }]} />
+      {children}
+    </>
   );
 }

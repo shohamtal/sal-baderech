@@ -3,7 +3,7 @@ import { Alert, Badge, Button, Card, Field, Input, Textarea } from '@/components
 import { errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
 import { useState, type FormEvent } from 'react';
-import { useOrg } from './OrgAdmin';
+import { useOrg } from './OrgArea';
 
 /** Organization details. Managers may edit the descriptive fields; the slug and
  *  the active flag stay with the platform admin, since both affect shared links. */

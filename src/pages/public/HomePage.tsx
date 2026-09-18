@@ -19,7 +19,7 @@ export default function HomePage() {
   if (loading || slugLoading) return <PageSpinner />;
   if (session && ctx) {
     if (ctx.is_platform_admin) return <Navigate to="/admin" replace />;
-    if (slug) return <Navigate to={`/${encodeURIComponent(slug)}/admin`} replace />;
+    if (slug) return <Navigate to={`/${encodeURIComponent(slug)}`} replace />;
   }
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">

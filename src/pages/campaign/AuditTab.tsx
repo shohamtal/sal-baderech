@@ -4,7 +4,7 @@ import { auditActionLabel, errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
 import type { AuditLog } from '@/lib/types';
 import { useAsync } from '@/lib/useAsync';
-import { useCampaign } from '../CampaignManage';
+import { useCampaign } from './CampaignArea';
 
 export default function AuditTab() {
   const { campaign } = useCampaign();

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { CampaignStatus } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState, type FormEvent } from 'react';
-import { useCampaign } from '../CampaignManage';
+import { useCampaign } from './CampaignArea';
 
 export default function SettingsTab() {
   const { campaign, org, reload } = useCampaign();

@@ -8,10 +8,10 @@ import { supabase } from '@/lib/supabase';
 import type { DeliveryField } from '@/lib/types';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCampaign } from '../CampaignManage';
+import { useCampaign } from './CampaignArea';
 
 export default function ImportTab() {
-  const { campaign } = useCampaign();
+  const { campaign, base } = useCampaign();
   const navigate = useNavigate();
   const [fileName, setFileName] = useState<string | null>(null);
   const [workbook, setWorkbook] = useState<ParsedWorkbook | null>(null);
@@ -137,7 +137,7 @@ export default function ImportTab() {
       {done != null && (
         <Alert kind="success">
           יובאו {done} משלוחים בהצלחה.{' '}
-          <button type="button" className="underline" onClick={() => navigate(`/m/${campaign.id}/deliveries`)}>
+          <button type="button" className="underline" onClick={() => navigate(`${base}/deliveries`)}>
             למשלוחים
           </button>
         </Alert>
@@ -154,7 +154,7 @@ export default function ImportTab() {
       {done != null && !geoRunning && geo && geo.done >= geo.total && (
         <Alert kind="success">
           הקמפיין מוכן. {geo.house + geo.street} מתוך {geo.total} המשלוחים ממופים.{' '}
-          <button type="button" className="underline" onClick={() => navigate(`/m/${campaign.id}/map`)}>למפה</button>
+          <button type="button" className="underline" onClick={() => navigate(`${base}/map`)}>למפה</button>
         </Alert>
       )}
 
