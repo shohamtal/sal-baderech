@@ -8,6 +8,7 @@
  * Actions: set_password, update_email, delete_user.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1';
+import { authorizeAction, type AdminActionName } from './authorize.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -53,24 +54,24 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-  // A manager may only act on accounts that manage one of their own
-  // organizations; a platform admin may act on anyone.
-  if (!isPlatformAdmin) {
-    if (!managedOrgIds.length) return json({ error: 'FORBIDDEN' }, 403);
-    const { data: rows, error } = await admin
-      .from('organization_managers')
-      .select('organization_id')
-      .eq('user_id', targetId)
-      .in('organization_id', managedOrgIds);
-    if (error) return json({ error: 'FORBIDDEN' }, 403);
-    if (!rows?.length) return json({ error: 'FORBIDDEN' }, 403);
-    // Deleting accounts stays with the platform admin.
-    if (action === 'delete_user') return json({ error: 'FORBIDDEN' }, 403);
-  }
+  // Describe the target from the database, never from the request body.
+  const [{ data: targetAdmin }, { data: targetOrgs, error: targetOrgsErr }] = await Promise.all([
+    admin.from('platform_admins').select('id').eq('user_id', targetId).maybeSingle(),
+    admin.from('organization_managers').select('organization_id').eq('user_id', targetId),
+  ]);
+  if (targetOrgsErr) return json({ error: 'FORBIDDEN' }, 403);
 
-  // Never let an admin lock themselves out by deleting their own account.
-  if (action === 'delete_user' && targetId === caller.user.id) {
-    return json({ error: 'CANNOT_DELETE_SELF' }, 400);
+  const decision = authorizeAction(
+    { userId: caller.user.id, isPlatformAdmin, orgIds: managedOrgIds },
+    {
+      userId: targetId,
+      isPlatformAdmin: Boolean(targetAdmin),
+      orgIds: (targetOrgs ?? []).map((r) => r.organization_id as string),
+    },
+    action as AdminActionName,
+  );
+  if (!decision.allowed) {
+    return json({ error: decision.reason }, decision.reason === 'CANNOT_DELETE_SELF' ? 400 : 403);
   }
 
   if (action === 'set_password') {
