@@ -6,7 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 
 export default function LoginPage() {
-  const { session, ctx, loading, refresh } = useAuth();
+  const { session, ctx, loading } = useAuth();
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +29,7 @@ export default function LoginPage() {
         if (session?.user.is_anonymous) await supabase.auth.signOut();
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        await refresh();
+        // The auth listener loads the context; calling refresh() here too raced it.
       } else if (mode === 'signup') {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -38,7 +38,7 @@ export default function LoginPage() {
         });
         if (error) throw error;
         if (data.session) {
-          await refresh();
+          // Handled by the auth listener.
         } else {
           setInfo('נשלח אליך אימייל לאישור. לאחר האישור ניתן להתחבר.');
           setMode('login');

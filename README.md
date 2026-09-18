@@ -171,8 +171,16 @@ Hebrew headers are equally accepted (שם, טלפון, כתובת, הערות, �
 * **Unnamed spreadsheet columns** are reported as ignored rather than silently dropped.
 * Rows with errors are listed with their row numbers and skipped only after the manager confirms.
 
-Missing coordinates can be filled later with the “השלמת מיקומים” button (OpenStreetMap Nominatim,
-1 req/s, best-effort) or edited by hand.
+### Locating addresses
+
+Lists rarely carry coordinates, so geocoding starts **automatically** once an import finishes, and can
+be re-run at any time from the deliveries screen. It uses OpenStreetMap Nominatim at one address per
+second and reports how many were pinpointed to the building against placed on the street.
+
+Addresses that resolve to nothing are never altered. Each one becomes a card showing the address as
+written, up to three suggested corrections (from Photon, restricted to the campaign's area), and a
+field for typing the correct street. A correction is applied only when a manager approves it, and the
+delivery keeps its original address until then.
 
 ## Clustering
 

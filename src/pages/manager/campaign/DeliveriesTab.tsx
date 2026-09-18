@@ -1,7 +1,8 @@
 import { DeliveryStatusBadge } from '@/components/StatusBadge';
 import { Alert, Button, Card, EmptyState, Field, Input, Modal, PageSpinner, Select, Textarea } from '@/components/ui';
 import { addressLine, formatDate, fullName } from '@/lib/format';
-import { geocodeSequential } from '@/lib/geocode';
+import { GeocodePanel } from '@/components/GeocodePanel';
+import { emptyProgress, fetchPendingGeocode, geocodeDeliveries, type GeocodeProgress } from '@/lib/geocodeRun';
 import { deliveryFieldLabel, deliveryStatusLabel, errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
 import type { Delivery, DeliveryStatus } from '@/lib/types';
@@ -23,7 +24,8 @@ export default function DeliveriesTab() {
   const [status, setStatus] = useState<DeliveryStatus | 'ALL'>('ALL');
   const [editing, setEditing] = useState<Partial<Delivery> | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [geo, setGeo] = useState<{ done: number; total: number; house: number; street: number; failed: number } | null>(null);
+  const [geo, setGeo] = useState<GeocodeProgress | null>(null);
+  const [geoRunning, setGeoRunning] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const { data, loading, error: loadError, reload } = useAsync(async () => {
@@ -94,35 +96,26 @@ export default function DeliveriesTab() {
   }
 
   async function geocodeMissing() {
-    const missing = (data ?? []).filter((d) => d.latitude == null && d.status !== 'CANCELLED');
-    if (!missing.length) return;
-    const minutes = Math.ceil((missing.length * 1.2) / 60);
+    const pending = await fetchPendingGeocode(campaign.id);
+    if (!pending.length) return;
+    const minutes = Math.max(1, Math.ceil((pending.length * 1.2) / 60));
     if (!confirm(
-      `לחפש מיקום עבור ${missing.length} כתובות דרך OpenStreetMap?\n` +
-      `התהליך נמשך כ-${minutes} דקות (שנייה לכל כתובת). אפשר לעצור באמצע, ומה שנמצא נשמר.\n` +
-      `השאירו את המסך פתוח.`,
+      `לאתר מיקום עבור ${pending.length} כתובות?\n` +
+      `שמות רחוב עם שגיאות כתיב יתוקנו אוטומטית לפי רשימת הרחובות של העיר.\n` +
+      `התהליך נמשך כ-${minutes} דקות. אפשר לעצור באמצע, ומה שנמצא נשמר.`,
     )) return;
     abortRef.current = new AbortController();
-    const stats = { done: 0, total: missing.length, house: 0, street: 0, failed: 0 };
-    setGeo({ ...stats });
-    await geocodeSequential(
-      missing,
-      (d) => ({ street: d.street, house_number: d.house_number, city: d.city }),
-      campaign.city,
-      async (d, r, i) => {
-        if (r) {
-          if (r.precision === 'house') stats.house++; else stats.street++;
-          await supabase.from('deliveries').update({ latitude: r.latitude, longitude: r.longitude }).eq('id', d.id);
-        } else {
-          stats.failed++;
-        }
-        stats.done = i + 1;
-        setGeo({ ...stats });
-      },
-      abortRef.current.signal,
-    );
-    setGeo(null);
-    reload();
+    setGeoRunning(true);
+    setError(null);
+    setGeo(emptyProgress(pending.length));
+    try {
+      await geocodeDeliveries(pending, campaign.city, setGeo, abortRef.current.signal);
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setGeoRunning(false);
+      reload();
+    }
   }
 
   if (loading) return <PageSpinner />;
@@ -141,18 +134,19 @@ export default function DeliveriesTab() {
       </div>
       <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
         <span>{filtered.length} מתוך {data?.length ?? 0}</span>
-        {missingCount > 0 && !geo && (
+        {missingCount > 0 && !geoRunning && (
           <Button size="sm" variant="secondary" onClick={geocodeMissing}>📍 השלמת מיקומים ({missingCount})</Button>
-        )}
-        {geo && (
-          <span className="inline-flex items-center gap-2">
-            מחפש מיקומים… {geo.done}/{geo.total} · מדויק {geo.house} · ברמת רחוב {geo.street}
-            {geo.failed > 0 && ` · לא נמצאו ${geo.failed}`}
-            <Button size="sm" variant="ghost" onClick={() => abortRef.current?.abort()}>עצירה</Button>
-          </span>
         )}
       </div>
       {error && <Alert kind="error">{error}</Alert>}
+      {geo && (
+        <GeocodePanel
+          progress={geo}
+          running={geoRunning}
+          onStop={() => abortRef.current?.abort()}
+          onResolved={() => reload()}
+        />
+      )}
       {filtered.length === 0 && <EmptyState title="לא נמצאו משלוחים" description={data?.length ? 'נסו לשנות את החיפוש.' : 'ייבאו קובץ נמענים או הוסיפו משלוח ידנית.'} />}
 
       <div className="space-y-2">

@@ -27,17 +27,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ctx, setCtx] = useState<MyContext | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /**
+   * Always resolve the session before asking for the caller's roles.
+   *
+   * Calling the RPC straight from the auth event raced the client's own session
+   * update, and the request went out with no Authorization header at all. The
+   * 401 then fell through to the "authenticated but no roles" branch, which
+   * bounces a manager back to the home page on an otherwise successful login.
+   */
   const refresh = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
     setSession(data.session);
-    if (data.session) {
+    if (!data.session) {
+      setCtx(null);
+      return;
+    }
+    try {
+      setCtx(await fetchContext());
+    } catch {
+      // One retry: the token may still have been settling.
       try {
         setCtx(await fetchContext());
       } catch {
         setCtx({ authenticated: true });
       }
-    } else {
-      setCtx(null);
     }
   }, []);
 
@@ -48,8 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       if (event === 'SIGNED_OUT') setCtx(null);
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        // Defer: Supabase warns against awaiting other supabase calls inside this callback.
-        setTimeout(() => fetchContext().then(setCtx).catch(() => setCtx({ authenticated: true })), 0);
+        // Defer: Supabase warns against awaiting other supabase calls inside this
+        // callback. refresh() re-reads the session first, so the RPC always
+        // carries a token.
+        setTimeout(() => void refresh(), 0);
       }
     });
     return () => {
