@@ -31,7 +31,7 @@ values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '22222222-2222-2222-2222-2222222
 insert into public.campaigns (id, organization_id, name, description, city, status, public_slug)
 values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'פסח 2027',
         'חלוקת סלי מזון לחג הפסח. החלוקה מתבצעת ביום ראשון בין 9:00 ל-14:00 מנקודת האיסוף ברחוב הרצל 1.',
-        'תל אביב', 'OPEN', 'demo12');
+        'תל אביב', 'PUBLISHED', 'demo12');
 
 insert into public.deliveries (campaign_id, full_name, street, house_number, apartment, floor, entrance, building_code, city, neighborhood, household_size, phone, notes, latitude, longitude) values
 ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'משה כהן', 'הרצל', '10', '3', '1', 'א', '1234', 'תל אביב', 'מרכז', 4, '0501111111', 'לדפוק חזק', '32.0603', '34.7710'),

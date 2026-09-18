@@ -2,10 +2,15 @@ import type { CampaignStatus, CorrectionStatus, DeliveryField, DeliveryStatus, V
 
 export const campaignStatusLabel: Record<CampaignStatus, string> = {
   DRAFT: 'טיוטה',
-  OPEN: 'פתוח להרשמה',
-  IN_PROGRESS: 'בחלוקה',
-  COMPLETED: 'הושלם',
-  ARCHIVED: 'בארכיון',
+  PUBLISHED: 'פורסם',
+  ENDED: 'הסתיים',
+};
+
+/** Shown next to the status selector so the choice is unambiguous. */
+export const campaignStatusHint: Record<CampaignStatus, string> = {
+  DRAFT: 'הקישור הציבורי אינו פעיל. רק מנהלי הארגון רואים את הקמפיין.',
+  PUBLISHED: 'מתנדבים יכולים להירשם, לקחת סלים ולחלק.',
+  ENDED: 'הקמפיין נסגר. אי אפשר להירשם או לקחת סלים חדשים.',
 };
 
 export const volunteerStatusLabel: Record<VolunteerStatus, string> = {
@@ -75,6 +80,7 @@ export function errorMessage(err: unknown): string {
     NOT_AUTHENTICATED: 'יש להתחבר מחדש.',
     CAMPAIGN_NOT_FOUND: 'הקמפיין לא נמצא.',
     CAMPAIGN_NOT_OPEN: 'הקמפיין אינו פתוח כעת.',
+    CAMPAIGN_NOT_FOUND_DRAFT: 'הקמפיין עדיין לא פורסם.',
     INVALID_NAME: 'יש להזין שם מלא (2 עד 80 תווים).',
     INVALID_PHONE: 'מספר הטלפון אינו תקין.',
     INVALID_STATUS: 'סטטוס לא תקין.',

@@ -78,7 +78,8 @@ export default function DashboardTab() {
       )}
       {campaign.status === 'DRAFT' && (
         <Alert kind="info">
-          הקמפיין בטיוטה — מתנדבים לא יכולים להירשם עדיין. <LinkButton to={`${base}/settings`} variant="ghost" size="sm">פתיחת הקמפיין</LinkButton>
+          הקמפיין בטיוטה — הקישור הציבורי אינו פעיל ומתנדבים אינם יכולים להירשם.{' '}
+          <LinkButton to={`${base}/settings`} variant="ghost" size="sm">פרסום הקמפיין</LinkButton>
         </Alert>
       )}
     </div>

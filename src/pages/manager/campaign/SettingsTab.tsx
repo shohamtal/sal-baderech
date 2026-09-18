@@ -1,5 +1,5 @@
 import { Alert, Button, Card, Field, Input, Select, Textarea } from '@/components/ui';
-import { campaignStatusLabel, errorMessage } from '@/lib/labels';
+import { campaignStatusHint, campaignStatusLabel, errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
 import type { CampaignStatus } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
@@ -69,7 +69,7 @@ export default function SettingsTab() {
             </a>
           </div>
         </div>
-        {campaign.status !== 'OPEN' && campaign.status !== 'IN_PROGRESS' && (
+        {campaign.status !== 'PUBLISHED' && (
           <Alert kind="warning" className="mt-3">הקמפיין במצב "{campaignStatusLabel[campaign.status]}" — ההרשמה סגורה. שנו את הסטטוס ל"פתוח להרשמה".</Alert>
         )}
       </Card>
@@ -80,7 +80,7 @@ export default function SettingsTab() {
           <Field label="שם"><Input required value={name} onChange={(e) => setName(e.target.value)} /></Field>
           <Field label="תיאור (מוצג בדף ההרשמה)"><Textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
           <Field label="עיר ברירת מחדל"><Input value={city} onChange={(e) => setCity(e.target.value)} /></Field>
-          <Field label="סטטוס">
+          <Field label="סטטוס" hint={campaignStatusHint[status]}>
             <Select value={status} onChange={(e) => setStatus(e.target.value as CampaignStatus)}>
               {(Object.keys(campaignStatusLabel) as CampaignStatus[]).map((s) => <option key={s} value={s}>{campaignStatusLabel[s]}</option>)}
             </Select>

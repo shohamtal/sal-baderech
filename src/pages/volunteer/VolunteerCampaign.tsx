@@ -71,7 +71,7 @@ export default function VolunteerCampaign() {
     );
   }
 
-  const campaignActive = campaign.status === 'OPEN' || campaign.status === 'IN_PROGRESS';
+  const campaignActive = campaign.status === 'PUBLISHED';
   const total = active.length + delivered.length;
 
   return (
@@ -93,7 +93,7 @@ export default function VolunteerCampaign() {
           🧺 {total === 0 ? 'קבלת סלים לחלוקה' : 'קבלת סלים נוספים'}
         </LinkButton>
       ) : (
-        <Alert kind="warning" className="mb-4">הקמפיין אינו פעיל כעת.</Alert>
+        <Alert kind="warning" className="mb-4">הקמפיין הסתיים. אי אפשר לקחת סלים נוספים.</Alert>
       )}
 
       {actionError && <Alert kind="error" className="mb-4">{actionError}</Alert>}

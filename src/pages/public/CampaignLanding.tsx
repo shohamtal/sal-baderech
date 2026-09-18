@@ -52,7 +52,7 @@ export default function CampaignLanding() {
       ) : (
         <RegisterForm
           slug={slug}
-          campaignOpen={data.status === 'OPEN' || data.status === 'IN_PROGRESS'}
+          campaignOpen={data.status === 'PUBLISHED'}
           onRegistered={async () => { await refresh(); reload(); }}
           ensureSession={ensureSession}
           defaultName={data.my_full_name ?? ''}
@@ -79,7 +79,7 @@ function RegisterForm({
   const [error, setError] = useState<string | null>(null);
 
   if (!campaignOpen) {
-    return <Alert kind="warning">הקמפיין אינו פתוח להרשמה כעת.</Alert>;
+    return <Alert kind="warning">הקמפיין הסתיים. ההרשמה סגורה.</Alert>;
   }
 
   async function submit(e: FormEvent) {
