@@ -8,7 +8,9 @@ import { supabase, SUPABASE_URL } from './supabase';
 type AdminAction =
   | { action: 'set_password'; user_id: string; password: string }
   | { action: 'update_email'; user_id: string; email: string }
-  | { action: 'delete_user'; user_id: string };
+  | { action: 'delete_user'; user_id: string }
+  /** Housekeeping: removes sign-ups that never produced a volunteer profile. */
+  | { action: 'purge_abandoned' };
 
 export async function callAdminUsers(payload: AdminAction): Promise<void> {
   const { data } = await supabase.auth.getSession();

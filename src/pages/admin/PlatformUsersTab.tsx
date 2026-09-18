@@ -1,5 +1,6 @@
 import { UserActionsModal, type EditableUser } from '@/components/UserActions';
-import { Alert, Badge, Card, EmptyState, Input, PageSpinner, Select } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, Input, PageSpinner, Select } from '@/components/ui';
+import { callAdminUsers } from '@/lib/adminApi';
 import { formatDate, formatPhone } from '@/lib/format';
 import { errorMessage, volunteerStatusLabel } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
@@ -15,15 +16,37 @@ export default function PlatformUsersTab() {
   const [role, setRole] = useState<RoleFilter>('ALL');
   const [editing, setEditing] = useState<EditableUser | null>(null);
 
+  const [purging, setPurging] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
   const { data, loading, error, reload } = useAsync(async () => {
-    const [{ data: users, error: e1 }, { data: invites, error: e2 }] = await Promise.all([
+    const [{ data: users, error: e1 }, { data: invites, error: e2 }, { data: abandoned }] = await Promise.all([
       supabase.rpc('admin_list_users'),
       supabase.rpc('admin_list_invites'),
+      supabase.rpc('admin_abandoned_signups'),
     ]);
     if (e1) throw e1;
     if (e2) throw e2;
-    return { users: (users ?? []) as PlatformUser[], invites: (invites ?? []) as PendingInvite[] };
+    return {
+      users: (users ?? []) as PlatformUser[],
+      invites: (invites ?? []) as PendingInvite[],
+      abandoned: (abandoned as { count: number } | null)?.count ?? 0,
+    };
   }, []);
+
+  async function purge() {
+    setPurging(true);
+    setNotice(null);
+    try {
+      await callAdminUsers({ action: 'purge_abandoned' });
+      setNotice('הרשמות שלא הושלמו נמחקו.');
+      reload();
+    } catch (e) {
+      setNotice(errorMessage(e));
+    } finally {
+      setPurging(false);
+    }
+  }
 
   const roleOf = (u: PlatformUser): RoleFilter =>
     u.is_platform_admin ? 'PLATFORM_ADMIN' : u.managed_orgs.length ? 'ORGANIZATION_MANAGER' : 'VOLUNTEER';
@@ -54,6 +77,16 @@ export default function PlatformUsersTab() {
       </div>
       <div className="text-sm text-slate-500">{rows.length} מתוך {data?.users.length ?? 0} משתמשים</div>
 
+      {notice && <Alert kind="info">{notice}</Alert>}
+      {(data?.abandoned ?? 0) > 0 && (
+        <Alert kind="warning" className="flex flex-wrap items-center justify-between gap-2">
+          <span>
+            {data!.abandoned} הרשמות שלא הושלמו — מישהו פתח את טופס ההרשמה ולא שלח אותו. הן אינן משתמשים ואינן מוצגות בטבלה.
+          </span>
+          <Button size="sm" variant="secondary" loading={purging} onClick={purge}>מחיקה</Button>
+        </Alert>
+      )}
+
       {rows.length === 0 && <EmptyState title="לא נמצאו משתמשים" />}
 
       <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200">
@@ -73,14 +106,21 @@ export default function PlatformUsersTab() {
             {rows.map((u) => (
               <tr key={u.user_id} className="border-t border-slate-100 align-top">
                 <td className="px-3 py-2">
-                  <div className="font-semibold">{u.full_name ?? u.email ?? 'ללא שם'}</div>
-                  {u.email && <div className="text-xs text-slate-500" dir="ltr">{u.email}</div>}
+                  {/* An account may have both an email and a volunteer name; show both,
+                      so it is obvious that they are the same person. */}
+                  <div className="font-semibold">{u.email ?? u.full_name}</div>
+                  {u.email && u.full_name && (
+                    <div className="text-xs text-slate-600">בהתנדבות: {u.full_name}</div>
+                  )}
                   {u.phone && <div className="text-xs text-slate-500" dir="ltr">{formatPhone(u.phone)}</div>}
                 </td>
                 <td className="px-3 py-2">
-                  {u.is_platform_admin && <Badge color="purple">מנהל פלטפורמה</Badge>}
-                  {!u.is_platform_admin && u.managed_orgs.length > 0 && <Badge color="blue">מנהל ארגון</Badge>}
-                  {!u.is_platform_admin && u.managed_orgs.length === 0 && <Badge color="teal">מתנדב</Badge>}
+                  {/* One account can hold several roles at once, so show them all. */}
+                  <div className="flex flex-wrap gap-1">
+                    {u.is_platform_admin && <Badge color="purple">מנהל פלטפורמה</Badge>}
+                    {u.managed_orgs.length > 0 && <Badge color="blue">מנהל ארגון</Badge>}
+                    {u.volunteer_id && <Badge color="teal">מתנדב</Badge>}
+                  </div>
                 </td>
                 <td className="px-3 py-2 text-slate-600">{u.managed_orgs.map((o) => o.name).join(', ') || '—'}</td>
                 <td className="px-3 py-2 text-slate-600">
