@@ -121,6 +121,7 @@ export default function PickTab({ campaignId, onClaimed }: { campaignId: string;
                 .map((a) => ({
                   id: a.id, latitude: a.latitude!, longitude: a.longitude!,
                   color: COLORS[selected % COLORS.length],
+                  label: a.house_number,
                   popup: <div>{a.street} {a.house_number}</div>,
                 }))}
             />
