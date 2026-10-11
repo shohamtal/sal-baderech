@@ -1,5 +1,6 @@
 import { useAuth } from '@/auth/AuthProvider';
 import { VolunteerStatusBadge } from '@/components/StatusBadge';
+import { TutorialButton, TutorialCard } from '@/components/TutorialVideo';
 import { Alert, Button, Card, Field, Input, PageSpinner } from '@/components/ui';
 import { errorMessage } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
@@ -55,10 +56,14 @@ export default function OrgHome() {
             <div className="truncate font-bold">{campaign?.name ?? 'אין קמפיין פעיל'}</div>
           </div>
           {session && !session.user.is_anonymous === false && status && <VolunteerStatusBadge status={status} />}
+          <TutorialButton />
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-24 pt-4">
+        {/* Offered in the body to people who have never seen the app; once they are
+            working, the header button is enough and the task list gets the space. */}
+        {(!status || status === 'PENDING') && <div className="mb-4"><TutorialCard /></div>}
         {!campaign && (
           <Card className="space-y-2 text-center">
             <div className="text-4xl">🗓️</div>

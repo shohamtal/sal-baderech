@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>סל בדרך — סטודיו</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  :root{--ink:#f8fafc;--dim:#cbd5e1;--mint:#5eead4;--amber:#ffd166}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1080px;height:1920px;overflow:hidden;background:#04110f}
+  body{font-family:'Heebo',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+  #stage{position:relative;width:1080px;height:1920px;overflow:hidden;isolation:isolate}
+  .scene{position:absolute;inset:0;opacity:0;will-change:opacity}
+
+  /* ---------- the application, and nothing else ---------- */
+  .app{position:absolute;inset:0;overflow:hidden;background:#f1f5f9}
+  .shot{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+  .shot img{display:block}
+
+  /* ---------- overlays, deliberately not part of the app ---------- */
+  .scrimTop{position:absolute;left:0;top:0;width:1080px;height:300px;
+      background:linear-gradient(180deg,rgba(2,14,12,.62),rgba(2,14,12,0))}
+  .scrimBot{position:absolute;left:0;bottom:0;width:1080px;height:560px;
+      background:linear-gradient(0deg,rgba(2,14,12,.82),rgba(2,14,12,.5) 38%,rgba(2,14,12,0))}
+
+  .chip{position:absolute;top:46px;left:50%;transform:translateX(-50%);
+      display:flex;align-items:center;gap:16px;white-space:nowrap;
+      padding:16px 34px;border-radius:999px;
+      background:rgba(6,26,23,.74);border:1px solid rgba(94,234,212,.38);
+      box-shadow:0 14px 40px rgba(0,0,0,.45);backdrop-filter:blur(14px);
+      font-size:38px;font-weight:800;letter-spacing:.06em;color:var(--mint)}
+  .chip b{width:14px;height:14px;border-radius:50%;background:var(--mint);
+      box-shadow:0 0 16px rgba(94,234,212,.9)}
+
+  .caps{position:absolute;left:56px;right:56px;bottom:196px;display:flex;justify-content:center}
+  .cap{position:absolute;bottom:0;max-width:920px;
+      padding:26px 40px;border-radius:30px;
+      background:rgba(6,20,18,.86);border:1px solid rgba(255,255,255,.14);
+      box-shadow:0 22px 60px rgba(0,0,0,.5);backdrop-filter:blur(16px);
+      font-size:54px;line-height:1.32;font-weight:700;text-align:center;color:#fff;
+      text-wrap:balance}
+
+  .bar{position:absolute;left:0;top:0;width:1080px;height:7px;background:rgba(255,255,255,.14);z-index:50}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#0f766e,#5eead4)}
+
+  /* ---------- pointers ---------- */
+  .fx{position:absolute;inset:0;pointer-events:none}
+  .hl{position:absolute;border:7px solid var(--amber);border-radius:28px;opacity:0;
+      box-shadow:0 0 0 12px rgba(255,209,102,.13),0 0 60px rgba(255,209,102,.5)}
+  .ring{position:absolute;border:9px solid var(--amber);border-radius:999px;opacity:0;
+      transform:translate(-50%,-50%);box-shadow:0 0 44px rgba(255,209,102,.65)}
+  .dot{position:absolute;width:150px;height:150px;border-radius:999px;opacity:0;
+      transform:translate(-50%,-50%);border:7px solid rgba(255,209,102,.95);
+      background:radial-gradient(circle,rgba(255,209,102,.38),rgba(255,209,102,.05) 70%)}
+
+  /* ---------- opening and closing cards ---------- */
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+      background:
+        radial-gradient(760px 620px at 24% 20%, #14524a 0%, transparent 62%),
+        radial-gradient(700px 640px at 84% 84%, #0d3f52 0%, transparent 60%),
+        linear-gradient(162deg,#051614 0%,#0a2a26 48%,#04120f 100%)}
+  .mesh{position:absolute;inset:0;opacity:.055;
+      background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);
+      background-size:72px 72px;mask-image:radial-gradient(760px 900px at 50% 46%,#000 0%,transparent 76%)}
+  .bigmark{width:230px;height:230px;border-radius:68px;display:grid;place-items:center;font-size:126px;
+      background:linear-gradient(145deg,#0f766e,#0a443f);
+      box-shadow:0 40px 90px rgba(0,0,0,.55),inset 0 3px 0 rgba(255,255,255,.2)}
+  .bigtitle{font-size:138px;font-weight:900;letter-spacing:-.02em;line-height:1.06;text-align:center;
+      background:linear-gradient(180deg,#fff,#9fe9db);-webkit-background-clip:text;background-clip:text;color:transparent;
+      filter:drop-shadow(0 12px 38px rgba(0,0,0,.45))}
+  .bigsub{font-size:54px;font-weight:500;color:#aee5db;text-align:center}
+  .bigrule{height:6px;border-radius:3px;width:0;margin:14px 0;
+      background:linear-gradient(90deg,rgba(94,234,212,0),var(--mint),rgba(94,234,212,0))}
+  .url{font-size:36px;font-weight:600;color:#7fd8c9;letter-spacing:.03em;direction:ltr;margin-top:26px}
+
+  .stepsTitle{font-size:92px;font-weight:900;margin-bottom:70px;text-align:center}
+  .steps{display:flex;flex-direction:column;gap:30px}
+  .step{width:720px;height:150px;border-radius:38px;padding:0 44px;
+      background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;gap:34px;
+      box-shadow:0 28px 64px rgba(0,0,0,.4)}
+  .step b{flex:none;width:92px;height:92px;border-radius:28px;display:grid;place-items:center;
+      font-size:46px;font-weight:900;background:linear-gradient(145deg,#0f766e,#0a443f);
+      box-shadow:inset 0 2px 0 rgba(255,255,255,.2)}
+  .step span{font-size:52px;font-weight:700}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="scenes"></div>
+  <div class="bar"><i></i></div>
+</div>
+
+<script>
+const clamp=(v,a=0,b=1)=>v<a?a:v>b?b:v;
+const easeOut=t=>1-Math.pow(1-clamp(t),3);
+const easeInOut=t=>(t=clamp(t))<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+const XF=0.42;          // cross-fade between scenes
+let TL=null, nodes=[];
+
+function el(cls,parent,html){const d=document.createElement('div');d.className=cls;if(html!=null)d.innerHTML=html;parent.appendChild(d);return d;}
+
+window.__init = function(timeline, shotsBase){
+  TL=timeline;
+  const host=document.getElementById('scenes');
+  const pending=[];
+
+  TL.scenes.forEach((s,i)=>{
+    const root=el('scene',host); root.style.zIndex=String(10+i);
+    const n={s,root};
+
+    if(s.kind==='screen'){
+      const app=el('app',root);
+      const shot=el('shot',app);
+      shot.style.width=`${TL.screen.w}px`; shot.style.height=`${TL.screen.h}px`;
+      const img=document.createElement('img');
+      img.src=`${shotsBase}/${s.shot}.png`;
+      img.width=TL.screen.w; img.height=TL.screen.h;
+      pending.push(new Promise(r=>{img.onload=r;img.onerror=r;}));
+      shot.appendChild(img);
+      n.shot=shot;
+
+      el('scrimTop',root); el('scrimBot',root);
+      const fx=el('fx',root);
+      n.hl = s.highlight ? el('hl',fx) : null;
+      n.taps=(s.taps||[]).map(()=>({ring:el('ring',fx),ring2:el('ring',fx),dot:el('dot',fx)}));
+
+      n.chip = s.chapter ? el('chip',root,`<b></b><span>${s.chapter}</span>`) : null;
+    } else {
+      const slide=el('slide',root);
+      el('mesh',slide);
+      if(s.kind==='steps'){
+        n.title=el('stepsTitle',slide,s.title);
+        const col=el('steps',slide);
+        n.steps=s.steps.map((label,k)=>el('step',col,`<b>${k+1}</b><span>${label}</span>`));
+      } else {
+        n.mark = s.kind==='title' ? el('bigmark',slide,'🧺') : null;
+        n.title=el('bigtitle',slide,s.title);
+        n.rule=el('bigrule',slide);
+        n.sub=el('bigsub',slide,s.subtitle);
+        if(s.kind==='outro') n.url=el('url',slide,'shohamtal.github.io/sal-baderech');
+      }
+    }
+
+    const caps=el('caps',root);
+    n.caps=(s.captions||[]).map(c=>el('cap',caps,c.text));
+    nodes.push(n);
+  });
+
+  return Promise.all(pending).then(()=>document.fonts.ready).then(()=>{window.__ready=true;});
+};
+
+window.__render = function(t){
+  nodes.forEach((n)=>{
+    const s=n.s, local=t-s.start;
+    const aIn=clamp((local+XF)/XF), aOut=clamp((s.start+s.dur-t)/XF);
+    const a=Math.min(aIn,aOut);
+    n.root.style.opacity=a;
+    if(a<=0.001){n.root.style.visibility='hidden';return;}
+    n.root.style.visibility='visible';
+
+    if(s.kind==='screen'){
+      /* Hold the establishing shot, then push in. The app always fills the frame: there is
+         no device, no desk and no side panel, only the screen the volunteer would be holding. */
+      const p=easeInOut((local-0.7)/1.5);
+      // A slow drift keeps a still picture alive. 3.5% is less than the app's own side padding,
+      // so nothing legible ever reaches the edge of the frame.
+      const drift=lerp(1,1.035,easeInOut(local/Math.max(s.dur,0.001)));
+      const sc=lerp(s.wide.s,s.close.s,p)*drift;
+      const cy=lerp(s.wide.y,s.close.y,p)+(TL.height/s.wide.s)/2;
+      const vy=clamp(cy-(TL.height/sc)/2,0,Math.max(0,TL.screen.h-TL.height/sc));
+      const vx=Math.max(0,(TL.screen.w-TL.width/sc)/2);
+      n.shot.style.transform=`translate(${-vx*sc}px,${-vy*sc}px) scale(${sc})`;
+      const at=(x,y)=>[(x-vx)*sc,(y-vy)*sc];
+
+      if(n.hl){
+        const r=s.highlight, [x,y]=at(r.x,r.y);
+        n.hl.style.left=`${x}px`; n.hl.style.top=`${y}px`;
+        n.hl.style.width=`${r.w*sc}px`; n.hl.style.height=`${r.h*sc}px`;
+        const on=clamp((local-1.5)/.5)*clamp((s.dur-.7-local)/.5);
+        n.hl.style.opacity=on*(.6+.4*Math.sin(local*4.2));
+      }
+
+      (s.taps||[]).forEach((tap,k)=>{
+        const g=n.taps[k], [x,y]=at(tap.x,tap.y);
+        for(const e of [g.ring,g.ring2,g.dot]){e.style.left=`${x}px`;e.style.top=`${y}px`;}
+        const since=local-tap.at;
+        g.dot.style.opacity=clamp((since+.45)/.35)*clamp((2.4-since)/.6);
+        g.dot.style.transform=`translate(-50%,-50%) scale(${lerp(1.3,1,easeOut((since+.45)/.45))})`;
+        const pulse=(e,delay)=>{
+          const q=(since-delay)/.8;
+          if(q<0||q>1){e.style.opacity=0;return;}
+          const size=lerp(90,400,easeOut(q));
+          e.style.width=e.style.height=`${size}px`;
+          e.style.opacity=(1-q)*.95;
+        };
+        pulse(g.ring,0); pulse(g.ring2,.44);
+      });
+
+      if(n.chip){
+        const q=easeOut((local-.25)/.55);
+        n.chip.style.opacity=q*clamp((s.dur-.5-local)/.4);
+        n.chip.style.transform=`translateX(-50%) translateY(${(1-q)*-26}px)`;
+      }
+    }
+    else if(s.kind==='steps'){
+      const p=easeOut((local-.15)/.7);
+      n.title.style.opacity=p; n.title.style.transform=`translateY(${(1-p)*30}px)`;
+      n.steps.forEach((e,k)=>{
+        const q=easeOut((local-(.6+k*.45))/.6);
+        e.style.opacity=q; e.style.transform=`translateY(${(1-q)*40}px) scale(${lerp(.95,1,q)})`;
+      });
+    }
+    else {
+      if(n.mark){const p=easeOut(local/.8);n.mark.style.opacity=p;
+        n.mark.style.transform=`scale(${lerp(.74,1,p)}) translateY(${(1-p)*24}px)`;}
+      const p1=easeOut((local-(n.mark?.5:.15))/.75);
+      n.title.style.opacity=p1; n.title.style.transform=`translateY(${(1-p1)*30}px)`;
+      n.rule.style.width=`${easeInOut((local-.9)/.9)*520}px`;
+      const p2=easeOut((local-1.0)/.7);
+      n.sub.style.opacity=p2*.96; n.sub.style.transform=`translateY(${(1-p2)*24}px)`;
+      if(n.url){n.url.style.opacity=easeOut((local-1.9)/.7)*.9;}
+    }
+
+    /* Captions: one line at a time, timed off the narration itself. */
+    (s.captions||[]).forEach((c,k)=>{
+      const e=n.caps[k];
+      const inP=easeOut((local-(c.at-0.18))/.26);
+      const outP=clamp((c.at+c.dur+0.22-local)/.26);
+      e.style.opacity=Math.min(inP,outP);
+      e.style.transform=`translateY(${(1-inP)*22}px) scale(${lerp(.985,1,inP)})`;
+    });
+  });
+
+  document.querySelector('.bar i').style.width=`${clamp(t/TL.total)*1080}px`;
+};
+</script>
+</body>
+</html>

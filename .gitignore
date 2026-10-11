@@ -10,3 +10,9 @@ supabase/.branches
 supabase/.temp
 .vite
 *.tsbuildinfo
+
+# Video pipeline output: 1.2 GB of rendered frames and masters, all regenerable.
+# The shipped copy of the film lives in public/learn/.
+video/out
+# Generated narration and music. Regenerate with video/narrate.mjs and video/music.mjs.
+video/audio
